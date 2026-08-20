@@ -1,5 +1,8 @@
 import { X, ShoppingCart, Users, Truck, FileText, BarChart3, Plug, Settings, PackagePlus } from 'lucide-react';
 import { useI18n } from '@/locales';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { currentUser } from '@/data/user';
 import type { Route } from '@/hooks/useRouter';
 
 interface MobileMoreMenuProps {
@@ -50,6 +53,22 @@ export function MobileMoreMenu({ open, onClose, navigate }: MobileMoreMenuProps)
               <span className="text-[15px] font-medium">{item.label}</span>
             </button>
           ))}
+        </div>
+
+        {/* Footer: language + profile + theme */}
+        <div className="flex items-center gap-1 border-t px-4 py-1.5"
+          style={{ borderColor: 'var(--border-color)' }}>
+          <LanguageSwitcher />
+          <button
+            onClick={() => { navigate({ name: 'settings' }); onClose(); }}
+            className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-surface-2 active:bg-surface-2"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[10px] font-semibold text-content-secondary">
+              {currentUser.initials}
+            </span>
+            <span className="truncate text-[12px] font-medium" style={{ color: 'var(--content)' }}>{currentUser.name}</span>
+          </button>
+          <ThemeToggle />
         </div>
       </div>
     </>

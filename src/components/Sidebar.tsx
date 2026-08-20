@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard, Inbox, ShoppingCart, Package, Boxes, Users,
-  Truck, FileText, BarChart3, Plug, Settings, LifeBuoy, X,
+  Truck, FileText, BarChart3, Plug, Settings, LifeBuoy,
   Download, ChevronRight, User, LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -9,8 +9,6 @@ import { useI18n } from '@/locales';
 import type { Route } from '@/hooks/useRouter';
 import { classNames } from '@/utils/format';
 import { currentUser } from '@/data/user';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -20,8 +18,6 @@ interface BeforeInstallPromptEvent extends Event {
 interface SidebarProps {
   current: Route['name'];
   navigate: (route: Route) => void;
-  mobileOpen: boolean;
-  onCloseMobile: () => void;
 }
 
 interface NavItem {
@@ -74,7 +70,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: SidebarProps) {
+export function Sidebar({ current, navigate }: SidebarProps) {
   const { t } = useI18n();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -121,7 +117,6 @@ export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: Sideba
 
   const handleNav = (item: NavItem) => {
     navigate(item.route);
-    onCloseMobile();
   };
 
   const showInstall = canInstall || isIOS;
@@ -136,12 +131,6 @@ export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: Sideba
           </div>
           <span className="text-[14px] font-semibold tracking-tight text-content">SellerOS</span>
         </div>
-        <button
-          onClick={onCloseMobile}
-          className="rounded p-1 text-content-tertiary hover:bg-surface-2 hover:text-content transition-colors lg:hidden"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </div>
 
       {/* Nav */}
@@ -228,12 +217,6 @@ export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: Sideba
 
         {/* Profile */}
         <div className="mt-1 border-t border-border pt-1.5" ref={profileRef}>
-          {mobileOpen && (
-            <div className="mb-1.5 flex items-center justify-between px-0.5">
-              <ThemeToggle />
-              <LanguageSwitcher />
-            </div>
-          )}
           <button
             onClick={() => setProfileOpen((v) => !v)}
             className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors hover:bg-surface-2"
@@ -251,14 +234,14 @@ export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: Sideba
           {profileOpen && (
             <div className="mt-1 animate-slide-up rounded-md border border-border bg-surface-0 py-1 shadow-popover">
               <button
-                onClick={() => { navigate({ name: 'settings' }); setProfileOpen(false); onCloseMobile(); }}
+                onClick={() => { navigate({ name: 'settings' }); setProfileOpen(false); }}
                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] text-content-secondary hover:bg-surface-2 hover:text-content transition-colors"
               >
                 <User className="h-4 w-4" />
                 {t.profile}
               </button>
               <button
-                onClick={() => { navigate({ name: 'settings' }); setProfileOpen(false); onCloseMobile(); }}
+                onClick={() => { navigate({ name: 'settings' }); setProfileOpen(false); }}
                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] text-content-secondary hover:bg-surface-2 hover:text-content transition-colors"
               >
                 <Settings className="h-4 w-4" />
@@ -266,7 +249,7 @@ export function Sidebar({ current, navigate, mobileOpen, onCloseMobile }: Sideba
               </button>
               <div className="my-1 border-t border-border" />
               <button
-                onClick={() => { setProfileOpen(false); onCloseMobile(); }}
+                onClick={() => { setProfileOpen(false); }}
                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] text-danger hover:bg-danger-subtle transition-colors"
               >
                 <LogOut className="h-4 w-4" />

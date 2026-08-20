@@ -83,7 +83,7 @@ export function InstallBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="fixed bottom-20 left-0 right-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="card shadow-popover border border-border p-4">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-subtle">

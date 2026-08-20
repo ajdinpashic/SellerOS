@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
 import { MobileMoreMenu } from '@/components/MobileMoreMenu';
 import { CommandPalette } from '@/components/CommandPalette';
+import { InstallBanner } from '@/components/InstallBanner';
 import type { Route } from '@/hooks/useRouter';
 import type { Order, Product, Customer } from '@/types';
 
@@ -19,55 +20,27 @@ interface AppLayoutProps {
 const fullBleedRoutes: Route['name'][] = ['inbox'];
 
 export function AppLayout({ route, navigate, children, orders, products, customers }: AppLayoutProps) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const fullBleed = fullBleedRoutes.includes(route.name);
-  const mainRef = useRef<HTMLElement>(null);
-
-  // The actual scroll container is <main>, not window/body (body has
-  // overflow:hidden). window.scrollTo(0,0) in useRouter is a no-op here,
-  // so without this the next page opens already scrolled down wherever
-  // the previous page was left.
-  useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
-  }, [route.name, route.name === 'order-detail' || route.name === 'product-detail' || route.name === 'customer-detail' ? (route as { id?: string }).id : null]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface-1">
-      {/* Desktop sidebar — direct flex child, no wrapper */}
-      <div className="hidden lg:flex lg:flex-col lg:w-56 lg:shrink-0">
+      {/* Desktop/tablet sidebar — hidden on phones */}
+      <div className="hidden md:flex md:flex-col md:w-56 md:shrink-0">
         <Sidebar
           current={route.name}
           navigate={navigate}
-          mobileOpen={false}
-          onCloseMobile={() => {}}
         />
       </div>
-
-      {/* Mobile sidebar overlay */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
-          <div className="relative h-full w-64" style={{ background: 'var(--surface-0)' }}>
-            <Sidebar
-              current={route.name}
-              navigate={(r) => { navigate(r); setMobileSidebarOpen(false); }}
-              mobileOpen={true}
-              onCloseMobile={() => setMobileSidebarOpen(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Main content area */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header
-          onMenuClick={() => setMobileSidebarOpen(true)}
           onCommandOpen={() => setCmdOpen(true)}
         />
 
-        <main ref={mainRef} className="flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto overscroll-contain">
           {fullBleed ? (
             <div className="h-full min-h-full">{children}</div>
           ) : (
@@ -76,10 +49,10 @@ export function AppLayout({ route, navigate, children, orders, products, custome
             </div>
           )}
         </main>
-      </div>
 
-      {/* Mobile bottom nav — hidden on desktop */}
-      <MobileNav current={route.name} navigate={navigate} onMoreClick={() => setMoreOpen(true)} />
+        {/* Mobile bottom nav — in flow, sits flush at the bottom */}
+        <MobileNav current={route.name} navigate={navigate} onMoreClick={() => setMoreOpen(true)} />
+      </div>
 
       {/* Mobile more menu */}
       <MobileMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} navigate={navigate} />
@@ -92,6 +65,9 @@ export function AppLayout({ route, navigate, children, orders, products, custome
         products={products}
         customers={customers}
       />
+
+      {/* PWA install prompt (mobile only) */}
+      <InstallBanner />
     </div>
   );
 }
