@@ -25,7 +25,7 @@ export function MobileNav({ current, navigate, onMoreClick }: MobileNavProps) {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-stretch justify-around border-t px-1 pt-1 pb-1"
         style={{
           background: 'var(--surface-0)',

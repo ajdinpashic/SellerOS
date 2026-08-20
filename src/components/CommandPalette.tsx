@@ -154,7 +154,7 @@ export function CommandPalette({ open, onClose, navigate, orders, products, cust
   let globalIndex = -1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[10vh] sm:pt-[15vh] animate-fade-in">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative flex w-full max-w-lg flex-col animate-scale-in rounded-lg border border-border bg-surface-0 shadow-popover overflow-hidden">
         <div className="flex items-center gap-3 border-b border-border px-4">
@@ -165,7 +165,7 @@ export function CommandPalette({ open, onClose, navigate, orders, products, cust
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.cmd_placeholder}
-            className="h-11 flex-1 bg-transparent text-[13px] text-content outline-none placeholder:text-content-tertiary"
+            className="h-11 flex-1 bg-transparent text-[16px] sm:text-[13px] text-content outline-none placeholder:text-content-tertiary"
           />
           <kbd className="kbd">ESC</kbd>
         </div>

@@ -55,14 +55,14 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
       {/* Mobile: hamburger */}
       <button
         onClick={onMenuClick}
-        className="flex h-11 w-11 items-center justify-center rounded-lg md:hidden"
+        className="flex h-11 w-11 items-center justify-center rounded-lg lg:hidden"
         style={{ color: 'var(--content-secondary)' }}
       >
         <Menu className="h-5 w-5" />
       </button>
 
       {/* Brand on mobile */}
-      <div className="flex items-center gap-2 md:hidden">
+      <div className="flex items-center gap-2 lg:hidden">
         <div className="flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold text-white"
           style={{ background: 'var(--accent)' }}>
           S
@@ -71,7 +71,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
       </div>
 
       {/* Search — desktop: flex-1 fills available space, mobile: icon only */}
-      <div className="relative hidden flex-1 md:block md:max-w-md md:mx-4">
+      <div className="relative hidden flex-1 lg:block lg:max-w-md lg:mx-4">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" />
         <input
           id="global-search"
@@ -86,12 +86,12 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
       </div>
 
       {/* Mobile: spacer */}
-      <div className="flex-1 md:hidden" />
+      <div className="flex-1 lg:hidden" />
 
       {/* Mobile: search icon */}
       <button
         onClick={onCommandOpen}
-        className="flex h-11 w-11 items-center justify-center rounded-lg md:hidden"
+        className="flex h-11 w-11 items-center justify-center rounded-lg lg:hidden"
         style={{ color: 'var(--content-secondary)' }}
       >
         <Search className="h-5 w-5" />
@@ -100,7 +100,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
       {/* Right actions */}
       <div className="ml-auto flex items-center gap-0.5 pr-2 md:pr-4 lg:pr-6">
         {/* Theme & language live in the mobile sidebar, in the header on desktop */}
-        <div className="hidden items-center gap-0.5 md:flex">
+        <div className="hidden items-center gap-0.5 lg:flex">
           <ThemeToggle />
           <LanguageSwitcher />
         </div>
@@ -108,11 +108,11 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen((v) => !v)}
-            className="relative flex h-11 w-11 items-center justify-center rounded-lg md:h-8 md:w-8"
+            className="relative flex h-11 w-11 items-center justify-center rounded-lg lg:h-8 lg:w-8"
             style={{ color: 'var(--content-secondary)' }}
           >
-            <Bell className="h-5 w-5 md:h-4 md:w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger ring-2 ring-surface-0 md:right-1 md:top-1 md:h-1.5 md:w-1.5" />
+            <Bell className="h-5 w-5 lg:h-4 lg:w-4" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger ring-2 ring-surface-0 lg:right-1 lg:top-1 lg:h-1.5 lg:w-1.5" />
           </button>
           {notifOpen && (
             <div className="absolute right-0 z-50 mt-1 w-72 animate-slide-up rounded-md border bg-surface-0 py-1 shadow-popover"
@@ -130,7 +130,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
           )}
         </div>
 
-        <button className="flex h-11 w-11 items-center justify-center rounded-lg md:h-8 md:w-8 hover:bg-surface-2">
+        <button className="flex h-11 w-11 items-center justify-center rounded-lg lg:h-8 lg:w-8 hover:bg-surface-2">
           <Avatar name={currentUser.name} size="sm" />
         </button>
       </div>

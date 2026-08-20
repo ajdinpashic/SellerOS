@@ -28,6 +28,14 @@ function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.classList.remove('light', 'dark');
   root.classList.add(theme);
+
+  // Keep the OS status bar / browser chrome color in sync with the header
+  // background, otherwise the status bar strip shows the old theme-color
+  // (e.g. blue) while the header below is white/dark — looking like the
+  // navbar is "floating" and disconnected from the top of the screen.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const color = theme === 'dark' ? '#111318' : '#ffffff';
+  if (meta) meta.setAttribute('content', color);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

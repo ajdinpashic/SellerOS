@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
@@ -23,6 +23,15 @@ export function AppLayout({ route, navigate, children, orders, products, custome
   const [moreOpen, setMoreOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const fullBleed = fullBleedRoutes.includes(route.name);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // The actual scroll container is <main>, not window/body (body has
+  // overflow:hidden). window.scrollTo(0,0) in useRouter is a no-op here,
+  // so without this the next page opens already scrolled down wherever
+  // the previous page was left.
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [route.name, route.name === 'order-detail' || route.name === 'product-detail' || route.name === 'customer-detail' ? (route as { id?: string }).id : null]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface-1">
@@ -58,7 +67,7 @@ export function AppLayout({ route, navigate, children, orders, products, custome
           onCommandOpen={() => setCmdOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto overscroll-contain pb-20 md:pb-0">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0">
           {fullBleed ? (
             <div className="h-full min-h-full">{children}</div>
           ) : (
