@@ -137,8 +137,13 @@ export function CustomersPage({ navigate, customers, onCreate, onDelete }: Custo
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState icon={Users} title={t.noResults} description={t.noResultsDesc}
-            action={<button onClick={clearFilters} className="btn-secondary">{t.clearFilters}</button>} />
+          <EmptyState icon={Users}
+            title={customers.length === 0 ? t.empty_customers_title : t.noResults}
+            description={customers.length === 0 ? t.empty_customers_desc : t.noResultsDesc}
+            action={customers.length === 0
+              ? <button onClick={() => setShowCreate(true)} className="btn-primary">{t.newCustomer}</button>
+              : <button onClick={clearFilters} className="btn-secondary">{t.clearFilters}</button>
+            } />
         ) : (
           <Table>
             <THead>

@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { Building2 } from 'lucide-react';
 import { useI18n } from '@/locales';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusiness } from '@/contexts/BusinessContext';
 import { authErrorMessage } from '@/lib/auth';
 import type { Route } from '@/hooks/useRouter';
 
@@ -11,10 +13,12 @@ interface RegisterPageProps {
 export function RegisterPage({ navigate }: RegisterPageProps) {
   const { t } = useI18n();
   const { signUp } = useAuth();
+  const { createBusiness } = useBusiness();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -30,11 +34,31 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
     const err = await signUp(fullName.trim(), email.trim(), password);
     if (err) {
       setError(authErrorMessage(err, t));
-    } else {
-      // If email confirmation is enabled, signUp returns success but the
-      // user must confirm first — send them to the sign-in screen.
-      navigate({ name: 'login' });
+      setBusy(false);
+      return;
     }
+    // After successful signup, create the business
+    const trimmedBiz = businessName.trim();
+    if (trimmedBiz.length >= 2) {
+      const bizResult = await createBusiness(trimmedBiz);
+      if (bizResult.error) {
+        // Business creation failed, but account was created
+        // Send to onboarding to create business
+        navigate({ name: 'onboarding' });
+        setBusy(false);
+        return;
+      }
+    } else {
+      // No business name, send to onboarding
+      navigate({ name: 'onboarding' });
+      setBusy(false);
+      return;
+    }
+    // If email confirmation is enabled, signUp returns success but the
+    // user must confirm first — send them to the sign-in screen.
+    // If no email confirmation, user is already signed in and business was created.
+    // The AppShell will detect no business and show onboarding.
+    navigate({ name: 'login' });
     setBusy(false);
   };
 
@@ -98,6 +122,20 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
+      </div>
+
+      <div>
+        <label className="label">{t.onboarding_businessName}</label>
+        <div className="relative">
+          <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" />
+          <input
+            className="input pl-9"
+            placeholder={t.onboarding_placeholder}
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            maxLength={200}
+          />
+        </div>
       </div>
 
       {error && (

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 export type Route =
+  | { name: 'landing' }
   | { name: 'dashboard' }
   | { name: 'inbox' }
   | { name: 'orders' }
@@ -29,7 +30,7 @@ export function parseHash(hash: string): Route {
   // Supabase password-recovery links land as "#access_token=...&type=recovery".
   // Treat any recovery token as the reset-password route.
   if (/^(access_token|type=recovery)/.test(clean)) return { name: 'reset-password' };
-  if (parts.length === 0) return { name: 'dashboard' };
+  if (parts.length === 0) return { name: 'landing' };
   const [p0, p1] = parts;
   switch (p0) {
     case 'login': return { name: 'login' };
@@ -37,6 +38,7 @@ export function parseHash(hash: string): Route {
     case 'forgot-password': return { name: 'forgot-password' };
     case 'reset-password': return { name: 'reset-password' };
     case 'onboarding': return { name: 'onboarding' };
+    case 'dashboard': return { name: 'dashboard' };
     case 'inbox': return { name: 'inbox' };
     case 'orders':
       if (p1 === 'new') return { name: 'create-order' };
@@ -54,13 +56,14 @@ export function parseHash(hash: string): Route {
     case 'reports': return { name: 'reports' };
     case 'integrations': return { name: 'integrations' };
     case 'settings': return { name: 'settings' };
-    default: return { name: 'dashboard' };
+    default: return { name: 'landing' };
   }
 }
 
 export function routeToHash(route: Route): string {
   switch (route.name) {
-    case 'dashboard': return '#/';
+    case 'landing': return '#/';
+    case 'dashboard': return '#/dashboard';
     case 'inbox': return '#/inbox';
     case 'orders': return '#/orders';
     case 'create-order': return '#/orders/new';

@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export function OnboardingPage() {
   const { t } = useI18n();
   const { createBusiness } = useBusiness();
-  const { profile, demoMode } = useAuth();
+  const { profile } = useAuth();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -43,7 +43,7 @@ export function OnboardingPage() {
         </p>
       </div>
 
-      {profile && !demoMode && (
+      {profile && (
         <div className="flex items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[13px] text-content-secondary">
           <Check className="h-4 w-4 text-success" />
           {profile.fullName || profile.userId}

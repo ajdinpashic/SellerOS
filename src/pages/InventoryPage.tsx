@@ -1,29 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Plus, Minus, History } from 'lucide-react';
+import { Plus, Minus, History, Package } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Panel, SectionHeader, Tabs, Toast } from '@/components/ui';
 import { FilterBar } from '@/components/FilterBar';
 import { StockBadge } from '@/components/Badges';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
+import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { useI18n } from '@/locales';
 import { formatKM, interpolate, classNames } from '@/utils/format';
 import { useProducts } from '@/hooks/useProducts';
-import { useInventoryMovements, type StockChange } from '@/hooks/useInventory';
+import { useInventoryMovements } from '@/hooks/useInventory';
 import { apiErrorMessage } from '@/lib/api';
-import { DEMO_MODE } from '@/lib/supabase';
 import type { Product } from '@/types';
 
 type StockStatus = 'all' | 'low' | 'out';
-
-function makeSeedChanges(): StockChange[] {
-  const now = Date.now();
-  return [
-    { id: 'h1', productName: 'Adidas Hoodie', from: 6, to: 4, reason: 'reason_loss', ts: now - 2 * 3600_000 },
-    { id: 'h2', productName: 'Samsung Galaxy Buds', from: 5, to: 0, reason: 'reason_correction', ts: now - 26 * 3600_000 },
-    { id: 'h3', productName: 'Leather Wallet Tan', from: 18, to: 28, reason: 'reason_new', ts: now - 30 * 3600_000 },
-  ];
-}
 
 export function InventoryPage() {
   const { t, lang } = useI18n();
@@ -35,10 +26,8 @@ export function InventoryPage() {
   const [newStock, setNewStock] = useState(0);
   const [reason, setReason] = useState('reason_new');
   const [toast, setToast] = useState('');
-  // Demo mode keeps its own seeded change feed; the backend feeds the
-  // real inventory_movements ledger.
-  const [demoChanges, setDemoChanges] = useState<StockChange[]>(makeSeedChanges);
-  const changes = DEMO_MODE ? demoChanges : dbChanges;
+  // Inventory changes come from the backend ledger.
+  const changes = dbChanges;
 
   const stats = useMemo(() => {
     const totalProducts = products.length;
@@ -72,7 +61,6 @@ export function InventoryPage() {
 
   const handleAdjust = async () => {
     if (!adjustProduct) return;
-    const from = adjustProduct.stock;
     // Server-side adjustment: validates bounds, writes the movement
     // row and the audit log. Stock can never go negative or below
     // the reserved quantity.
@@ -83,14 +71,7 @@ export function InventoryPage() {
       setTimeout(() => setToast(''), 2500);
       return;
     }
-    if (DEMO_MODE) {
-      setDemoChanges((prev) => [
-        { id: `h${Date.now()}`, productName: adjustProduct.name, from, to: newStock, reason, ts: Date.now() },
-        ...prev,
-      ].slice(0, 8));
-    } else {
-      void refreshMovements();
-    }
+    void refreshMovements();
     setAdjustProduct(null);
     setToast(t.stockAdjusted);
     setTimeout(() => setToast(''), 2500);
@@ -132,21 +113,24 @@ export function InventoryPage() {
 
         <div className="grid grid-cols-1 gap-5 p-4 xl:grid-cols-3">
           <div className="min-w-0 xl:col-span-2">
-            <Table>
-              <THead>
-                <TR>
-                  <TH>{t.product}</TH>
-                  <TH>{t.sku}</TH>
-                  <TH align="right">{t.stock}</TH>
-                  <TH align="right">{t.reserved}</TH>
-                  <TH align="right">{t.available}</TH>
-                  <TH align="right">{t.minimum}</TH>
-                  <TH>{t.status}</TH>
-                  <TH align="right">{t.actions}</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {filtered.map((p) => {
+            {products.length === 0 ? (
+              <EmptyState icon={Package} title={t.empty_inventory_title} description={t.empty_inventory_desc} />
+            ) : (
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>{t.product}</TH>
+                    <TH>{t.sku}</TH>
+                    <TH align="right">{t.stock}</TH>
+                    <TH align="right">{t.reserved}</TH>
+                    <TH align="right">{t.available}</TH>
+                    <TH align="right">{t.minimum}</TH>
+                    <TH>{t.status}</TH>
+                    <TH align="right">{t.actions}</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {filtered.map((p) => {
                   const available = Math.max(p.stock - p.reserved, 0);
                   return (
                     <TR key={p.id}>
@@ -167,6 +151,7 @@ export function InventoryPage() {
                 })}
               </TBody>
             </Table>
+            )}
           </div>
 
           {/* Recent changes */}

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { conversationFromRow, type ConversationRow } from '@/lib/mappers';
+import { conversationFromRow, type ConversationRow, type Conversation } from '@/lib/mappers';
 import { apiSendMessage, type ApiError } from '@/lib/api';
-import { mockConversations, type Conversation } from '@/data/inbox';
+
+export type { Conversation };
 
 export function useConversations() {
   const { business } = useBusiness();
@@ -27,26 +28,16 @@ export function useConversations() {
   }, [business]);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      setConversations(mockConversations);
+    if (!business) {
+      setConversations([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     void refresh().then(() => setLoading(false));
-  }, [refresh]);
+  }, [refresh, business]);
 
   const sendMessage = useCallback(async (conversationId: string, content: string): Promise<{ error?: ApiError }> => {
-    if (DEMO_MODE) {
-      const now = new Date();
-      const time = now.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
-      setConversations((prev) => prev.map((c) =>
-        c.id === conversationId
-          ? { ...c, lastTime: time, messages: [...c.messages, { id: `m${Date.now()}`, from: 'me', text: content, time }] }
-          : c,
-      ));
-      return {};
-    }
     const result = await apiSendMessage(conversationId, content);
     if (!result.error) await refresh();
     return result;

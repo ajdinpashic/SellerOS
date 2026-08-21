@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Invoice } from '@/types';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { invoiceFromRow, type InvoiceRow } from '@/lib/mappers';
-import { mockInvoices } from '@/data/misc';
 
 export function useInvoices() {
   const { business } = useBusiness();
@@ -32,14 +31,14 @@ export function useInvoices() {
   }, [business]);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      setInvoices(mockInvoices);
+    if (!business) {
+      setInvoices([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     void refresh().then(() => setLoading(false));
-  }, [refresh]);
+  }, [refresh, business]);
 
   return { invoices, loading, error, refresh };
 }

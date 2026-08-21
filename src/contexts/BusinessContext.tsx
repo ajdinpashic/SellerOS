@@ -1,7 +1,7 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type BusinessRole = 'owner' | 'admin' | 'staff';
@@ -28,13 +28,6 @@ interface BusinessContextValue {
 const BusinessContext = createContext<BusinessContextValue | null>(null);
 
 const STORAGE_KEY = 'shopos-business';
-
-const demoBusiness: Business = {
-  id: 'demo',
-  name: 'Demo Shop',
-  slug: 'demo-shop',
-  role: 'owner',
-};
 
 interface MembershipRow {
   role: BusinessRole;
@@ -76,12 +69,6 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      setBusinesses([demoBusiness]);
-      setBusiness(demoBusiness);
-      setStatus('ready');
-      return;
-    }
     if (authStatus === 'signed-in') {
       setStatus('loading');
       void fetchMemberships().then(() => setStatus('ready'));

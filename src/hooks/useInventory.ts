@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { apiAdjustInventory, type ApiError } from '@/lib/api';
 
@@ -42,13 +42,14 @@ export function useInventoryMovements() {
   }, [business]);
 
   useEffect(() => {
-    if (DEMO_MODE) {
+    if (!business) {
+      setChanges([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     void refresh().then(() => setLoading(false));
-  }, [refresh]);
+  }, [refresh, business]);
 
   return { changes, loading, error, refresh };
 }
@@ -75,7 +76,6 @@ export function useInventory() {
   const { changes, loading, error, refresh: refreshMovements } = useInventoryMovements();
 
   const adjust = useCallback(async (productId: string, newStock: number, reason: string): Promise<{ error?: ApiError }> => {
-    if (DEMO_MODE) return {};
     if (!business) return { error: { message: 'No business' } };
     const result = await apiAdjustInventory(productId, newStock, reason);
     if (!result.error) await refreshMovements();

@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { useI18n } from '@/locales';
-import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Layout for public auth screens (login, register, forgot/reset
@@ -9,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const { t } = useI18n();
-  const { demoMode } = useAuth();
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface-1">
@@ -32,12 +30,6 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="card p-6">{children}</div>
-
-          {demoMode && (
-            <p className="mt-4 rounded-md border border-warning/20 bg-warning-subtle px-3 py-2 text-center text-[12px] text-warning">
-              {t.auth_demoMode}
-            </p>
-          )}
         </div>
       </div>
     </div>

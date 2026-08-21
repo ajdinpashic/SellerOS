@@ -143,8 +143,13 @@ export function ProductsPage({ navigate, products, onCreate, onDelete }: Product
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState icon={Package} title={t.noResults} description={t.noResultsDesc}
-            action={<button onClick={clearFilters} className="btn-secondary">{t.clearFilters}</button>} />
+          <EmptyState icon={Package}
+            title={products.length === 0 ? t.empty_products_title : t.noResults}
+            description={products.length === 0 ? t.empty_products_desc : t.noResultsDesc}
+            action={products.length === 0
+              ? <button onClick={() => setShowCreate(true)} className="btn-primary">{t.newProduct}</button>
+              : <button onClick={clearFilters} className="btn-secondary">{t.clearFilters}</button>
+            } />
         ) : (
           <div className="hidden md:block">
             <Table>

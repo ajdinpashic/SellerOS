@@ -8,6 +8,7 @@ import { useRouter } from '@/hooks/useRouter';
 import { useOrders } from '@/hooks/useOrders';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
+import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
@@ -57,6 +58,13 @@ function LoadingScreen() {
   );
 }
 
+/** Routes that are only accessible when authenticated. */
+const protectedRoutes = new Set([
+  'dashboard', 'inbox', 'orders', 'order-detail', 'create-order',
+  'products', 'product-detail', 'inventory', 'customers', 'customer-detail',
+  'shipping', 'invoices', 'reports', 'integrations', 'settings', 'onboarding',
+]);
+
 function AppShell() {
   const { route, navigate } = useRouter();
   const auth = useAuth();
@@ -70,17 +78,34 @@ function AppShell() {
   const booting = auth.status === 'loading' || (auth.status === 'signed-in' && biz.status === 'loading');
   if (booting) return <LoadingScreen />;
 
-  const authed = auth.status === 'signed-in' || auth.status === 'demo';
+  const authed = auth.status === 'signed-in';
 
-  // ─── Public auth screens ───
+  // Redirect authenticated users away from landing page to dashboard
+  if (authed && route.name === 'landing') {
+    navigate({ name: 'dashboard' });
+    return <LoadingScreen />;
+  }
+
+  // Redirect unauthenticated users away from protected routes
+  if (!authed && protectedRoutes.has(route.name)) {
+    // Show loading briefly then redirect to landing
+    if (auth.status === 'loading') return <LoadingScreen />;
+    navigate({ name: 'landing' });
+    return <LoadingScreen />;
+  }
+
+  // ─── Public: Landing page (default for unauthenticated) ───
   if (!authed) {
     let page: ReactNode;
     switch (route.name) {
       case 'register': page = <RegisterPage navigate={navigate} />; break;
       case 'forgot-password': page = <ForgotPasswordPage navigate={navigate} />; break;
       case 'reset-password': page = <ResetPasswordPage />; break;
-      default: page = <LoginPage navigate={navigate} />;
+      case 'login': page = <LoginPage navigate={navigate} />; break;
+      default: page = <LandingPage navigate={navigate} />;
     }
+    // Auth pages use AuthShell, landing page does not
+    if (route.name === 'landing') return page;
     return <AuthShell>{page}</AuthShell>;
   }
 

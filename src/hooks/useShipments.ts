@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Shipment } from '@/types';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { shipmentFromRow, type ShipmentRow } from '@/lib/mappers';
-import { mockShipments } from '@/data/misc';
 
 export function useShipments() {
   const { business } = useBusiness();
@@ -27,14 +26,14 @@ export function useShipments() {
   }, [business]);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      setShipments(mockShipments);
+    if (!business) {
+      setShipments([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     void refresh().then(() => setLoading(false));
-  }, [refresh]);
+  }, [refresh, business]);
 
   return { shipments, loading, error, refresh };
 }

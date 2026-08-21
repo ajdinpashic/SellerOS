@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { ArrowRight, Plus, Truck, ChevronRight } from 'lucide-react';
+import { ArrowRight, Plus, Truck, ChevronRight, Package, ShoppingCart, Plug } from 'lucide-react';
 import { Panel, SectionHeader, StatStrip, type StatItem } from '@/components/ui';
 import { OrderStatusBadge, ChannelBadge, ShipmentStatusBadge } from '@/components/Badges';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
@@ -78,6 +78,105 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
     thisMonth: t.thisMonth,
     thisYear: t.thisYear,
   };
+
+  // Empty state for new accounts
+  if (orders.length === 0) {
+    return (
+      <div className="space-y-4">
+        {/* Greeting */}
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-content md:text-xl">
+              {greeting}, {firstName}.
+            </h1>
+            <p className="mt-0.5 text-[13px] text-content-secondary">
+              {t.empty_dashboard_desc}
+            </p>
+          </div>
+        </div>
+
+        {/* Empty dashboard state */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <button
+            onClick={() => navigate({ name: 'orders' })}
+            className="card flex flex-col items-center p-6 text-center transition-colors hover:bg-surface-1"
+          >
+            <ShoppingCart className="h-8 w-8 text-content-tertiary" />
+            <p className="mt-2 text-[24px] font-semibold text-content">0</p>
+            <p className="text-[12px] text-content-secondary">{t.orders}</p>
+          </button>
+          <button
+            onClick={() => navigate({ name: 'products' })}
+            className="card flex flex-col items-center p-6 text-center transition-colors hover:bg-surface-1"
+          >
+            <Package className="h-8 w-8 text-content-tertiary" />
+            <p className="mt-2 text-[24px] font-semibold text-content">0</p>
+            <p className="text-[12px] text-content-secondary">{t.products}</p>
+          </button>
+          <button
+            onClick={() => navigate({ name: 'customers' })}
+            className="card flex flex-col items-center p-6 text-center transition-colors hover:bg-surface-1"
+          >
+            <svg className="h-8 w-8 text-content-tertiary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+            <p className="mt-2 text-[24px] font-semibold text-content">0</p>
+            <p className="text-[12px] text-content-secondary">{t.customers}</p>
+          </button>
+          <div className="card flex flex-col items-center p-6 text-center">
+            <p className="text-[24px] font-semibold text-content">0 KM</p>
+            <p className="text-[12px] text-content-secondary">{t.totalSales}</p>
+          </div>
+        </div>
+
+        {/* Getting started guide */}
+        <Panel>
+          <SectionHeader title={t.empty_dashboard_title} />
+          <div className="divide-y divide-border">
+            <button
+              onClick={() => navigate({ name: 'integrations' })}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-1"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-subtle">
+                <Plug className="h-4 w-4 text-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-content">{t.empty_connect_channel}</p>
+                <p className="mt-0.5 text-[12px] text-content-secondary">{t.landing_how_step1_desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-content-tertiary" />
+            </button>
+            <button
+              onClick={() => navigate({ name: 'products' })}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-1"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-subtle">
+                <Package className="h-4 w-4 text-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-content">{t.empty_add_product}</p>
+                <p className="mt-0.5 text-[12px] text-content-secondary">{t.landing_how_step2_desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-content-tertiary" />
+            </button>
+            <button
+              onClick={() => navigate({ name: 'create-order' })}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-1"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent-subtle">
+                <ShoppingCart className="h-4 w-4 text-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-content">{t.empty_create_order}</p>
+                <p className="mt-0.5 text-[12px] text-content-secondary">{t.landing_how_step3_desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-content-tertiary" />
+            </button>
+          </div>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

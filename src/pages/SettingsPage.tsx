@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { classNames } from '@/utils/format';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 type SettingsTab = 'profile' | 'company' | 'language' | 'notifications' | 'users' | 'subscription' | 'security';
 
@@ -61,7 +61,7 @@ export function SettingsPage() {
 
   // Team members are read through RLS — only this business's members.
   useEffect(() => {
-    if (!supabase || !business || DEMO_MODE) {
+    if (!supabase || !business) {
       setTeamMembers([]);
       return;
     }
@@ -90,7 +90,7 @@ export function SettingsPage() {
   };
 
   const handleSaveCompany = async () => {
-    if (!supabase || !business || DEMO_MODE) {
+    if (!supabase || !business) {
       handleSave();
       return;
     }

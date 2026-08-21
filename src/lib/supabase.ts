@@ -25,13 +25,6 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
-/**
- * When Supabase is not configured the app runs in demo mode: auth is
- * faked as a signed-in demo user and data comes from the mock layer.
- * This preserves the original frontend-only experience.
- */
-export const DEMO_MODE = !isSupabaseConfigured;
-
 export function assertSupabase(): NonNullable<typeof supabase> {
   if (!supabase) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');

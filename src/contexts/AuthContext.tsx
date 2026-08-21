@@ -2,8 +2,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, DEMO_MODE } from '@/lib/supabase';
-import { currentUser as demoUser } from '@/data/user';
+import { supabase } from '@/lib/supabase';
 
 export interface Profile {
   userId: string;
@@ -18,13 +17,12 @@ export interface AuthError {
   message: string;
 }
 
-type AuthStatus = 'loading' | 'signed-in' | 'signed-out' | 'demo';
+type AuthStatus = 'loading' | 'signed-in' | 'signed-out';
 
 interface AuthContextValue {
   status: AuthStatus;
   user: User | null;
   profile: Profile | null;
-  demoMode: boolean;
   /** True while the user is on a password-recovery session. */
   recoveryActive: boolean;
   signIn: (email: string, password: string) => Promise<AuthError | null>;
@@ -37,13 +35,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const demoProfile: Profile = {
-  userId: 'demo-user',
-  fullName: demoUser.name,
-  phone: null,
-  avatarUrl: null,
-};
 
 function rowToProfile(row: { user_id: string; full_name: string; phone: string | null; avatar_url: string | null }): Profile {
   return {
@@ -78,12 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      setStatus('demo');
-      setProfile(demoProfile);
+    if (!supabase) {
+      setStatus('signed-out');
       return;
     }
-    if (!supabase) return;
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -132,7 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase?.auth.signOut();
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setSession(null);
+    setProfile(null);
+    setStatus('signed-out');
   }, []);
 
   const resetPassword = useCallback(async (email: string): Promise<AuthError | null> => {
@@ -170,7 +163,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status,
     user: session?.user ?? null,
     profile,
-    demoMode: DEMO_MODE,
     recoveryActive,
     signIn, signUp, signOut, resetPassword, updatePassword, updateProfile, refreshProfile,
   }), [status, session, profile, recoveryActive, signIn, signUp, signOut, resetPassword, updatePassword, updateProfile, refreshProfile]);
