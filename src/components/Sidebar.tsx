@@ -8,7 +8,8 @@ import type { LucideIcon } from 'lucide-react';
 import { useI18n } from '@/locales';
 import type { Route } from '@/hooks/useRouter';
 import { classNames } from '@/utils/format';
-import { currentUser } from '@/data/user';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBusiness } from '@/contexts/BusinessContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -72,6 +73,15 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar({ current, navigate }: SidebarProps) {
   const { t } = useI18n();
+  const { profile, signOut } = useAuth();
+  const { role } = useBusiness();
+  const displayName = profile?.fullName || t.profile;
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join('') || '?';
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -222,11 +232,13 @@ export function Sidebar({ current, navigate }: SidebarProps) {
             className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors hover:bg-surface-2"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-3 text-[10px] font-semibold text-content-secondary shrink-0">
-              {currentUser.initials}
+              {initials}
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block truncate text-[13px] font-medium text-content">{currentUser.name}</span>
-              <span className="block truncate text-[11px] text-content-tertiary">{t.admin}</span>
+              <span className="block truncate text-[13px] font-medium text-content">{displayName}</span>
+              <span className="block truncate text-[11px] text-content-tertiary">
+                {role === 'owner' || role === 'admin' ? t.admin : t.staff}
+              </span>
             </span>
             <ChevronRight className={classNames('h-3 w-3 text-content-tertiary transition-transform', profileOpen && 'rotate-90')} />
           </button>
@@ -249,7 +261,7 @@ export function Sidebar({ current, navigate }: SidebarProps) {
               </button>
               <div className="my-1 border-t border-border" />
               <button
-                onClick={() => { setProfileOpen(false); }}
+                onClick={() => { setProfileOpen(false); void signOut(); }}
                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] text-danger hover:bg-danger-subtle transition-colors"
               >
                 <LogOut className="h-4 w-4" />

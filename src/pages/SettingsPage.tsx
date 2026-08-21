@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User, Building2, Globe, Bell, Users as UsersIcon, CreditCard, Shield,
   Check, Mail, Smartphone, Crown,
@@ -8,6 +8,9 @@ import { Panel, Toast, Avatar } from '@/components/ui';
 import { useI18n } from '@/locales';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { classNames } from '@/utils/format';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBusiness } from '@/contexts/BusinessContext';
+import { supabase, DEMO_MODE } from '@/lib/supabase';
 
 type SettingsTab = 'profile' | 'company' | 'language' | 'notifications' | 'users' | 'subscription' | 'security';
 
@@ -21,21 +24,93 @@ const tabs: { key: SettingsTab; labelKey: string; icon: typeof User }[] = [
   { key: 'security', labelKey: 'securitySettings', icon: Shield },
 ];
 
-const teamMembers = [
-  { name: 'Ajdin Kovač', email: 'ajdin@selleros.ba', role: 'admin' },
-  { name: 'Amra Selimović', email: 'amra@selleros.ba', role: 'manager' },
-  { name: 'Haris Mujagić', email: 'haris@selleros.ba', role: 'staff' },
-];
+interface TeamMember {
+  name: string;
+  email: string;
+  role: string;
+}
 
 export function SettingsPage() {
   const { t } = useI18n();
+  const { profile, user, updateProfile, updatePassword } = useAuth();
+  const { business, refresh } = useBusiness();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [notifPrefs, setNotifPrefs] = useState({ email: true, push: false, orders: true, lowStock: true });
   const [savedToast, setSavedToast] = useState('');
 
+  // Profile form
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  // Company form
+  const [companyName, setCompanyName] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('Ferhadija 12, 71000 Sarajevo');
+  const [vatNumber, setVatNumber] = useState('1234567890123');
+  // Password form
+  const [newPassword, setNewPassword] = useState('');
+  // Team
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    setFullName(profile?.fullName ?? '');
+    setPhone(profile?.phone ?? '');
+  }, [profile]);
+
+  useEffect(() => {
+    setCompanyName(business?.name ?? '');
+  }, [business]);
+
+  // Team members are read through RLS — only this business's members.
+  useEffect(() => {
+    if (!supabase || !business || DEMO_MODE) {
+      setTeamMembers([]);
+      return;
+    }
+    void supabase
+      .from('business_members')
+      .select('role, user_id, profiles(full_name)')
+      .eq('business_id', business.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        setTeamMembers((data ?? []).map((m) => ({
+          name: (m.profiles as { full_name?: string } | null)?.full_name || '',
+          email: m.user_id,
+          role: m.role,
+        })));
+      });
+  }, [business]);
+
   const handleSave = () => {
     setSavedToast(t.saved);
     setTimeout(() => setSavedToast(''), 2500);
+  };
+
+  const handleSaveProfile = async () => {
+    const err = await updateProfile({ fullName: fullName.trim(), phone: phone.trim() });
+    if (!err) handleSave();
+  };
+
+  const handleSaveCompany = async () => {
+    if (!supabase || !business || DEMO_MODE) {
+      handleSave();
+      return;
+    }
+    const { error } = await supabase
+      .from('businesses')
+      .update({ name: companyName.trim() })
+      .eq('id', business.id);
+    if (!error) {
+      await refresh();
+      handleSave();
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (newPassword.length < 6) return;
+    const err = await updatePassword(newPassword);
+    if (!err) {
+      setNewPassword('');
+      handleSave();
+    }
   };
 
   const toggleNotif = (key: keyof typeof notifPrefs) => {
@@ -95,22 +170,21 @@ export function SettingsPage() {
               <div className="max-w-lg space-y-4">
                 <h3 className="text-sm font-semibold text-content">{t.profileSettings}</h3>
                 <div className="flex items-center gap-3">
-                  <Avatar name="Ajdin Kovač" size="lg" />
-                  <button className="btn-secondary btn-sm">{t.profile}</button>
+                  <Avatar name={fullName || t.profile} size="lg" />
                 </div>
                 <div>
                   <label className="label">{t.fullName}</label>
-                  <input className="input" defaultValue="Ajdin Kovač" />
+                  <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">{t.emailAddress}</label>
-                  <input className="input" defaultValue="ajdin@selleros.ba" />
+                  <input className="input" value={user?.email ?? ''} readOnly disabled />
                 </div>
                 <div>
                   <label className="label">{t.phone}</label>
-                  <input className="input" defaultValue="+387 61 234 567" />
+                  <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
-                <button onClick={handleSave} className="btn-primary">{t.saveChanges}</button>
+                <button onClick={() => void handleSaveProfile()} className="btn-primary">{t.saveChanges}</button>
               </div>
             )}
 
@@ -119,17 +193,17 @@ export function SettingsPage() {
                 <h3 className="text-sm font-semibold text-content">{t.companySettings}</h3>
                 <div>
                   <label className="label">{t.companyName}</label>
-                  <input className="input" defaultValue="SellerOS d.o.o. Sarajevo" />
+                  <input className="input" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">{t.companyAddress}</label>
-                  <input className="input" defaultValue="Ferhadija 12, 71000 Sarajevo" />
+                  <input className="input" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">{t.vatNumber}</label>
-                  <input className="input" defaultValue="1234567890123" />
+                  <input className="input" value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} />
                 </div>
-                <button onClick={handleSave} className="btn-primary">{t.saveChanges}</button>
+                <button onClick={() => void handleSaveCompany()} className="btn-primary">{t.saveChanges}</button>
               </div>
             )}
 
@@ -175,30 +249,33 @@ export function SettingsPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-content">{t.teamMembers}</h3>
-                  <button className="btn-primary btn-sm"><UsersIcon className="h-4 w-4" /> {t.inviteMember}</button>
                 </div>
                 <div className="space-y-2">
-                  {teamMembers.map((m) => (
-                    <div key={m.email} className="flex items-center justify-between rounded-md border border-border px-3.5 py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={m.name} />
-                        <div>
-                          <p className="text-[13px] font-medium text-content">{m.name}</p>
-                          <p className="text-xs text-content-tertiary">{m.email}</p>
+                  {teamMembers.length === 0 ? (
+                    <p className="rounded-md border border-border bg-surface-1 px-3.5 py-4 text-center text-[13px] text-content-tertiary">
+                      {t.noResults}
+                    </p>
+                  ) : (
+                    teamMembers.map((m, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-md border border-border px-3.5 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={m.name || m.email} />
+                          <div>
+                            <p className="text-[13px] font-medium text-content">{m.name || t.teamMembers}</p>
+                            <p className="text-xs text-content-tertiary">{m.email}</p>
+                          </div>
                         </div>
+                        <span className={classNames(
+                          'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+                          m.role === 'owner' || m.role === 'admin'
+                            ? 'border-accent/20 bg-accent-subtle text-accent'
+                            : 'border-border bg-surface-2 text-content-tertiary',
+                        )}>
+                          {m.role === 'owner' || m.role === 'admin' ? t.admin : t.staff}
+                        </span>
                       </div>
-                      <span className={classNames(
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-                        m.role === 'admin'
-                          ? 'border-accent/20 bg-accent-subtle text-accent'
-                          : m.role === 'manager'
-                          ? 'border-border bg-surface-2 text-content-secondary'
-                          : 'border-border bg-surface-2 text-content-tertiary',
-                      )}>
-                        {t[m.role as keyof typeof t] as string}
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -238,9 +315,17 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <label className="label">{t.changePassword}</label>
-                  <input type="password" className="input" placeholder="••••••••" />
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
                 </div>
-                <button onClick={handleSave} className="btn-primary">{t.saveChanges}</button>
+                <button onClick={() => void handleSavePassword()} disabled={newPassword.length < 6} className="btn-primary">
+                  {t.saveChanges}
+                </button>
               </div>
             )}
           </Panel>

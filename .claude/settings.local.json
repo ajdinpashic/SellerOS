@@ -7,7 +7,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/src/pages/InboxPage.tsx)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/src/pages/DashboardPage.tsx)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/src/index.css)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(supabase --version)",
+      "Bash(supabase secrets *)"
     ]
   }
 }

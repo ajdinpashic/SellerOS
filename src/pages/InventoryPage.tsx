@@ -8,23 +8,13 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { Modal } from '@/components/Modal';
 import { useI18n } from '@/locales';
 import { formatKM, interpolate, classNames } from '@/utils/format';
+import { useProducts } from '@/hooks/useProducts';
+import { useInventoryMovements, type StockChange } from '@/hooks/useInventory';
+import { apiErrorMessage } from '@/lib/api';
+import { DEMO_MODE } from '@/lib/supabase';
 import type { Product } from '@/types';
 
 type StockStatus = 'all' | 'low' | 'out';
-
-interface StockChange {
-  id: string;
-  productName: string;
-  from: number;
-  to: number;
-  reason: string; // i18n key
-  ts: number;
-}
-
-interface InventoryPageProps {
-  products: Product[];
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
-}
 
 function makeSeedChanges(): StockChange[] {
   const now = Date.now();
@@ -35,15 +25,20 @@ function makeSeedChanges(): StockChange[] {
   ];
 }
 
-export function InventoryPage({ products, setProducts }: InventoryPageProps) {
+export function InventoryPage() {
   const { t, lang } = useI18n();
+  const { products, adjustStock } = useProducts();
+  const { changes: dbChanges, refresh: refreshMovements } = useInventoryMovements();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StockStatus>('all');
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [newStock, setNewStock] = useState(0);
   const [reason, setReason] = useState('reason_new');
   const [toast, setToast] = useState('');
-  const [changes, setChanges] = useState<StockChange[]>(makeSeedChanges);
+  // Demo mode keeps its own seeded change feed; the backend feeds the
+  // real inventory_movements ledger.
+  const [demoChanges, setDemoChanges] = useState<StockChange[]>(makeSeedChanges);
+  const changes = DEMO_MODE ? demoChanges : dbChanges;
 
   const stats = useMemo(() => {
     const totalProducts = products.length;
@@ -75,20 +70,27 @@ export function InventoryPage({ products, setProducts }: InventoryPageProps) {
     setReason('reason_new');
   };
 
-  const handleAdjust = () => {
+  const handleAdjust = async () => {
     if (!adjustProduct) return;
-    setProducts((prev) => prev.map((p) => p.id === adjustProduct.id ? { ...p, stock: newStock } : p));
-    setChanges((prev) => [
-      {
-        id: `h${Date.now()}`,
-        productName: adjustProduct.name,
-        from: adjustProduct.stock,
-        to: newStock,
-        reason,
-        ts: Date.now(),
-      },
-      ...prev,
-    ].slice(0, 8));
+    const from = adjustProduct.stock;
+    // Server-side adjustment: validates bounds, writes the movement
+    // row and the audit log. Stock can never go negative or below
+    // the reserved quantity.
+    const result = await adjustStock(adjustProduct.id, newStock, reason);
+    if (result.error) {
+      setAdjustProduct(null);
+      setToast(apiErrorMessage(result.error, t));
+      setTimeout(() => setToast(''), 2500);
+      return;
+    }
+    if (DEMO_MODE) {
+      setDemoChanges((prev) => [
+        { id: `h${Date.now()}`, productName: adjustProduct.name, from, to: newStock, reason, ts: Date.now() },
+        ...prev,
+      ].slice(0, 8));
+    } else {
+      void refreshMovements();
+    }
     setAdjustProduct(null);
     setToast(t.stockAdjusted);
     setTimeout(() => setToast(''), 2500);

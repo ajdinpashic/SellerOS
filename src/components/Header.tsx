@@ -1,23 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, LogOut } from 'lucide-react';
 import { useI18n } from '@/locales';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar } from '@/components/ui';
-import { currentUser } from '@/data/user';
+import { useAuth } from '@/contexts/AuthContext';
+import type { Route } from '@/hooks/useRouter';
 
 interface HeaderProps {
   onCommandOpen: () => void;
+  navigate?: (route: Route) => void;
 }
 
-export function Header({ onCommandOpen }: HeaderProps) {
+export function Header({ onCommandOpen, navigate }: HeaderProps) {
   const { t } = useI18n();
+  const { profile, signOut } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -122,9 +128,42 @@ export function Header({ onCommandOpen }: HeaderProps) {
           )}
         </div>
 
-        <button className="flex h-11 w-11 items-center justify-center rounded-lg md:h-8 md:w-8 hover:bg-surface-2">
-          <Avatar name={currentUser.name} size="sm" />
-        </button>
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setProfileOpen((v) => !v)}
+            aria-label={t.profile}
+            className="flex h-11 w-11 items-center justify-center rounded-lg md:h-8 md:w-8 hover:bg-surface-2 transition-colors"
+          >
+            <Avatar name={profile?.fullName || t.profile} size="sm" />
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 z-50 mt-1 w-60 animate-slide-up rounded-md border bg-surface-0 py-1 shadow-popover"
+              style={{ borderColor: 'var(--border-color)' }}>
+              <div className="border-b px-3 py-2.5" style={{ borderColor: 'var(--border-color)' }}>
+                <p className="truncate text-[13px] font-semibold" style={{ color: 'var(--content)' }}>
+                  {profile?.fullName || t.profile}
+                </p>
+                <p className="mt-0.5 truncate text-[11px]" style={{ color: 'var(--content-tertiary)' }}>
+                  {t.account}
+                </p>
+              </div>
+              <button
+                onClick={() => { setProfileOpen(false); navigate?.({ name: 'settings' }); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-content-secondary hover:bg-surface-2 hover:text-content transition-colors"
+              >
+                {t.settings}
+              </button>
+              <div className="my-1 border-t" style={{ borderColor: 'var(--border-color)' }} />
+              <button
+                onClick={() => { void signOut(); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-danger hover:bg-danger-subtle transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                {t.logout}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

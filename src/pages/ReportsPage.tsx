@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
@@ -6,25 +6,51 @@ import { PageHeader } from '@/components/PageHeader';
 import { Panel, SectionHeader, StatStrip, type StatItem } from '@/components/ui';
 import { useI18n } from '@/locales';
 import { formatKM, classNames } from '@/utils/format';
-import { salesByChannel, salesOverTime, topProductsReport, orderStatusReport } from '@/data/misc';
+import { useOrders } from '@/hooks/useOrders';
+import { salesSeries, salesByChannel as channelData, topProducts as topProductsData, orderStatuses as statusData, type SalesRange } from '@/lib/reports';
+import { orderTotal } from '@/utils/format';
 
 const rangeKeys = ['7days', '30days', 'thisMonth', 'thisYear'] as const;
-type RangeKey = typeof rangeKeys[number];
+type RangeKey = (typeof rangeKeys)[number];
 
 export function ReportsPage() {
   const { t, lang } = useI18n();
+  const { orders } = useOrders();
   const [range, setRange] = useState<RangeKey>('30days');
 
-  const chartData = salesOverTime[range];
-  const totalRevenue = chartData.reduce((s, d) => s + d.value, 0);
+  const chartData = useMemo(() => salesSeries(orders, range as SalesRange), [orders, range]);
+  const byChannel = useMemo(() => channelData(orders), [orders]);
+  const topProducts = useMemo(() => topProductsData(orders), [orders]);
+  const orderStatuses = useMemo(() => statusData(orders), [orders]);
 
-  const maxRevenue = Math.max(...topProductsReport.map((p) => p.revenue));
+  const totalRevenue = useMemo(() => {
+    let sum = 0;
+    for (const o of orders) {
+      if (o.status !== 'cancelled') sum += orderTotal(o.items, o.shipping);
+    }
+    return sum;
+  }, [orders]);
+
+  const totalProfit = useMemo(() => {
+    let sum = 0;
+    for (const o of orders) {
+      if (o.status === 'cancelled') continue;
+      for (const i of o.items) sum += i.quantity * i.price;
+    }
+    return sum;
+  }, [orders]);
+
+  const activeOrders = useMemo(() => orders.filter((o) => o.status !== 'cancelled'), [orders]);
+  const totalOrderCount = activeOrders.length;
+  const avgOrderValue = totalOrderCount > 0 ? totalRevenue / totalOrderCount : 0;
+
+  const maxRevenue = Math.max(...topProducts.map((p) => p.revenue), 1);
 
   const stats: StatItem[] = [
-    { value: formatKM(18450, lang), label: t.revenue },
-    { value: '156', label: t.ordersLabel },
-    { value: formatKM(7820, lang), label: t.profitLabel },
-    { value: formatKM(118.27, lang), label: t.avgOrderValue },
+    { value: formatKM(totalRevenue, lang), label: t.revenue },
+    { value: `${totalOrderCount}`, label: t.ordersLabel },
+    { value: formatKM(totalProfit, lang), label: t.profitLabel },
+    { value: formatKM(avgOrderValue, lang), label: t.avgOrderValue },
   ];
 
   const rangeLabels: Record<RangeKey, string> = {
@@ -85,7 +111,7 @@ export function ReportsPage() {
         <Panel>
           <SectionHeader title={t.salesByChannel} />
           <div className="space-y-3.5 px-4 py-4">
-            {salesByChannel.map((ch) => (
+            {byChannel.map((ch) => (
               <div key={ch.channel}>
                 <div className="mb-1.5 flex items-baseline justify-between text-[13px]">
                   <span className="font-medium text-content">{ch.channel}</span>
@@ -103,17 +129,21 @@ export function ReportsPage() {
         <Panel>
           <SectionHeader title={t.orderStatuses} />
           <div className="space-y-3.5 px-4 py-4">
-            {orderStatusReport.map((s) => (
-              <div key={s.status}>
-                <div className="mb-1.5 flex items-baseline justify-between text-[13px]">
-                  <span className="font-medium text-content">{s.status}</span>
-                  <span className="font-semibold tnum">{s.count}</span>
+            {orderStatuses.map((s) => {
+              const statusLabel = (t[`st_${s.status}` as keyof typeof t] as string) ?? s.status;
+              const maxCount = Math.max(...orderStatuses.map((x) => x.count), 1);
+              return (
+                <div key={s.status}>
+                  <div className="mb-1.5 flex items-baseline justify-between text-[13px]">
+                    <span className="font-medium text-content">{statusLabel}</span>
+                    <span className="font-semibold tnum">{s.count}</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                    <div className="h-full rounded-full" style={{ width: `${Math.max((s.count / maxCount) * 100, 6)}%`, backgroundColor: s.color }} />
+                  </div>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-                  <div className="h-full rounded-full" style={{ width: `${Math.max((s.count / 14) * 100, 6)}%`, backgroundColor: s.color }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Panel>
       </div>
@@ -132,7 +162,7 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {topProductsReport.map((p) => (
+              {topProducts.map((p) => (
                 <tr key={p.name} className="transition-colors hover:bg-surface-1">
                   <td className="px-4 py-3 font-medium text-content">{p.name}</td>
                   <td className="px-4 py-3 text-right text-content-secondary tnum">{p.sold}</td>

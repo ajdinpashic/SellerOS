@@ -8,10 +8,10 @@ import { OrderStatusBadge, ChannelBadge, ShipmentStatusBadge } from '@/component
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { useI18n } from '@/locales';
 import { formatKM, formatDate, orderTotal, classNames, interpolate } from '@/utils/format';
-import { mockProducts } from '@/data/products';
-import { salesOverTime, mockShipments } from '@/data/misc';
-import { dashboardSummary } from '@/data/inbox';
-import { currentUser } from '@/data/user';
+import { useProducts } from '@/hooks/useProducts';
+import { useShipments } from '@/hooks/useShipments';
+import { useAuth } from '@/contexts/AuthContext';
+import { salesSeries } from '@/lib/reports';
 import type { Order } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
@@ -25,7 +25,12 @@ type RangeKey = typeof rangeKeys[number];
 
 export function DashboardPage({ navigate, orders }: DashboardProps) {
   const { t, lang } = useI18n();
+  const { profile } = useAuth();
+  const { products } = useProducts();
+  const { shipments } = useShipments();
   const [range, setRange] = useState<RangeKey>('30days');
+
+  const firstName = useMemo(() => profile?.fullName.trim().split(/\s+/)[0] || t.profile, [profile, t]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -35,24 +40,36 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
   }, [t]);
 
   const lowStockProducts = useMemo(() =>
-    mockProducts.filter((p) => p.stock > 0 && p.stock <= p.minimumStock).slice(0, 5),
-  []);
+    products.filter((p) => p.stock > 0 && p.stock <= p.minimumStock).slice(0, 5),
+  [products]);
 
   const attention = useMemo(() => ({
     toConfirm: orders.filter((o) => o.status === 'pending').slice(0, 3),
     toShip: orders.filter((o) => o.status === 'ready').slice(0, 3),
-    problems: mockShipments.filter((s) => s.status === 'problem').slice(0, 2),
-  }), [orders]);
+    problems: shipments.filter((s) => s.status === 'problem').slice(0, 2),
+  }), [orders, shipments]);
 
   const latestOrders = useMemo(() =>
     [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5),
   [orders]);
 
+  const summary = useMemo(() => {
+    const today = new Date().toDateString();
+    return {
+      newOrders: orders.filter((o) => new Date(o.date).toDateString() === today).length,
+      awaitingConfirmation: orders.filter((o) => o.status === 'pending').length,
+      awaitingShipping: orders.filter((o) => o.status === 'ready').length,
+      problems: shipments.filter((s) => s.status === 'problem').length,
+    };
+  }, [orders, shipments]);
+
+  const chartData = useMemo(() => salesSeries(orders, range), [orders, range]);
+
   const stats: StatItem[] = [
-    { value: `${dashboardSummary.newOrders}`, label: t.newOrdersToday, onClick: () => navigate({ name: 'orders' }) },
-    { value: `${dashboardSummary.awaitingConfirmation}`, label: t.awaitingConfirmation, tone: 'warning', onClick: () => navigate({ name: 'orders' }) },
-    { value: `${dashboardSummary.awaitingShipping}`, label: t.awaitingShipping, tone: 'accent', onClick: () => navigate({ name: 'orders' }) },
-    { value: `${dashboardSummary.problems}`, label: t.problemsLabel, tone: 'danger', onClick: () => navigate({ name: 'shipping' }) },
+    { value: `${summary.newOrders}`, label: t.newOrdersToday, onClick: () => navigate({ name: 'orders' }) },
+    { value: `${summary.awaitingConfirmation}`, label: t.awaitingConfirmation, tone: 'warning', onClick: () => navigate({ name: 'orders' }) },
+    { value: `${summary.awaitingShipping}`, label: t.awaitingShipping, tone: 'accent', onClick: () => navigate({ name: 'orders' }) },
+    { value: `${summary.problems}`, label: t.problemsLabel, tone: 'danger', onClick: () => navigate({ name: 'shipping' }) },
   ];
 
   const rangeLabels: Record<RangeKey, string> = {
@@ -68,11 +85,11 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-content md:text-xl">
-            {greeting}, {currentUser.firstName}.
+            {greeting}, {firstName}.
           </h1>
           <p className="mt-0.5 text-[13px] text-content-secondary">
             {interpolate(t.summarySentence, {
-              orders: dashboardSummary.newOrders,
+              orders: summary.newOrders,
               low: lowStockProducts.length,
             })}
           </p>
@@ -387,7 +404,7 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
             <div className="px-2 pb-3 pt-2">
               <div className="h-36">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={salesOverTime[range]} margin={{ top: 5, right: 8, left: -16, bottom: 0 }}>
+                  <AreaChart data={chartData} margin={{ top: 5, right: 8, left: -16, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--content-tertiary)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--content-tertiary)' }} axisLine={false} tickLine={false} width={52} />

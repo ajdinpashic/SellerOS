@@ -20,4 +20,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables — never commit real secrets.
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret
+
+# Supabase CLI local artifacts
+supabase/.temp
+supabase/.branches
+supabase/.status

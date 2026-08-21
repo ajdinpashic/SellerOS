@@ -15,14 +15,28 @@ export type Route =
   | { name: 'invoices' }
   | { name: 'reports' }
   | { name: 'integrations' }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  // Public auth routes
+  | { name: 'login' }
+  | { name: 'register' }
+  | { name: 'forgot-password' }
+  | { name: 'reset-password' }
+  | { name: 'onboarding' };
 
 export function parseHash(hash: string): Route {
   const clean = hash.replace(/^#\/?/, '');
   const parts = clean.split('/').filter(Boolean);
+  // Supabase password-recovery links land as "#access_token=...&type=recovery".
+  // Treat any recovery token as the reset-password route.
+  if (/^(access_token|type=recovery)/.test(clean)) return { name: 'reset-password' };
   if (parts.length === 0) return { name: 'dashboard' };
   const [p0, p1] = parts;
   switch (p0) {
+    case 'login': return { name: 'login' };
+    case 'register': return { name: 'register' };
+    case 'forgot-password': return { name: 'forgot-password' };
+    case 'reset-password': return { name: 'reset-password' };
+    case 'onboarding': return { name: 'onboarding' };
     case 'inbox': return { name: 'inbox' };
     case 'orders':
       if (p1 === 'new') return { name: 'create-order' };
@@ -61,6 +75,11 @@ export function routeToHash(route: Route): string {
     case 'reports': return '#/reports';
     case 'integrations': return '#/integrations';
     case 'settings': return '#/settings';
+    case 'login': return '#/login';
+    case 'register': return '#/register';
+    case 'forgot-password': return '#/forgot-password';
+    case 'reset-password': return '#/reset-password';
+    case 'onboarding': return '#/onboarding';
   }
 }
 

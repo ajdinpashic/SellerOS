@@ -42,7 +42,7 @@ function mk(
   note?: string,
 ): Order {
   return {
-    id, customerId, customerName, channel, items, shipping, paymentMethod,
+    id, key: id, customerId, customerName, channel, items, shipping, paymentMethod,
     status, date, address, phone, email, note,
     timeline: makeTimeline(status, date),
   };

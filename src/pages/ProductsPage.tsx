@@ -9,14 +9,15 @@ import { Modal } from '@/components/Modal';
 import { Toast } from '@/components/ui';
 import { useI18n } from '@/locales';
 import { formatKM, classNames } from '@/utils/format';
+import { apiErrorMessage, type ApiError, type CreateProductInput } from '@/lib/api';
 import type { Product, SalesChannel } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
 interface ProductsPageProps {
   navigate: (route: Route) => void;
   products: Product[];
-  onCreate: (product: Product) => void;
-  onDelete: (id: string) => void;
+  onCreate: (input: CreateProductInput) => Promise<{ error?: ApiError; id?: string }>;
+  onDelete: (id: string) => Promise<{ error?: ApiError }>;
 }
 
 type SortField = 'name' | 'price' | 'stock' | 'profit';
@@ -33,6 +34,8 @@ export function ProductsPage({ navigate, products, onCreate, onDelete }: Product
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [toast, setToast] = useState('');
+  const [formError, setFormError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newSku, setNewSku] = useState('');
@@ -74,32 +77,44 @@ export function ProductsPage({ navigate, products, onCreate, onDelete }: Product
 
   const clearFilters = () => { setSearch(''); setChannelFilter(''); };
 
-  const handleCreate = () => {
-    if (!newName.trim() || !newPrice) return;
-    const product: Product = {
-      id: `p${Date.now()}`,
+  const handleCreate = async () => {
+    if (!newName.trim() || !newPrice || busy) return;
+    setBusy(true);
+    setFormError('');
+    // The server validates values, creates the inventory row and logs
+    // the initial stock movement atomically.
+    const result = await onCreate({
       name: newName.trim(),
       sku: newSku.trim() || `SKU-${Date.now()}`,
       description: '',
+      category: newCategory.trim() || 'Ostalo',
       price: parseFloat(newPrice) || 0,
       cost: parseFloat(newCost) || 0,
-      stock: parseInt(newStock) || 0,
       minimumStock: parseInt(newMinStock) || 10,
-      reserved: 0,
+      initialStock: parseInt(newStock) || 0,
       channels: ['webshop'],
-      category: newCategory.trim() || 'Ostalo',
-    };
-    onCreate(product);
+    });
+    setBusy(false);
+    if (result.error) {
+      setFormError(apiErrorMessage(result.error, t));
+      return;
+    }
     setShowCreate(false);
     setNewName(''); setNewSku(''); setNewPrice(''); setNewCost(''); setNewStock(''); setNewCategory(''); setNewMinStock('10');
     setToast(t.productCreated);
     setTimeout(() => setToast(''), 2500);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    onDelete(deleteTarget.id);
+    setBusy(true);
+    const result = await onDelete(deleteTarget.id);
+    setBusy(false);
     setDeleteTarget(null);
+    if (result.error) {
+      setToast(apiErrorMessage(result.error, t));
+      setTimeout(() => setToast(''), 2500);
+    }
   };
 
   return (
@@ -254,6 +269,11 @@ export function ProductsPage({ navigate, products, onCreate, onDelete }: Product
             <input className="input" type="number" value={newMinStock} onChange={(e) => setNewMinStock(e.target.value)} />
           </div>
         </div>
+        {formError && (
+          <p className="mt-3 rounded-md border border-danger/20 bg-danger-subtle px-3 py-2 text-[13px] text-danger">
+            {formError}
+          </p>
+        )}
       </Modal>
 
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t.deleteProductTitle} size="sm"

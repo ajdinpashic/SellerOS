@@ -8,7 +8,7 @@ import { Modal } from '@/components/Modal';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { useI18n } from '@/locales';
 import { formatDate, formatDateTime, classNames } from '@/utils/format';
-import { mockShipments } from '@/data/misc';
+import { useShipments } from '@/hooks/useShipments';
 import type { ShipmentStatus, Shipment } from '@/types';
 
 const tabs: { key: ShipmentStatus | 'all'; labelKey: string }[] = [
@@ -21,12 +21,13 @@ const tabs: { key: ShipmentStatus | 'all'; labelKey: string }[] = [
 
 export function ShippingPage() {
   const { t, lang } = useI18n();
+  const { shipments } = useShipments();
   const [activeTab, setActiveTab] = useState<ShipmentStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Shipment | null>(null);
 
   const filtered = useMemo(() => {
-    return mockShipments.filter((s) => {
+    return shipments.filter((s) => {
       const matchesTab = activeTab === 'all' || s.status === activeTab;
       const matchesSearch = !search ||
         s.orderId.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,15 +35,15 @@ export function ShippingPage() {
         s.trackingNumber.toLowerCase().includes(search.toLowerCase());
       return matchesTab && matchesSearch;
     });
-  }, [activeTab, search]);
+  }, [shipments, activeTab, search]);
 
   const counts = useMemo(() => ({
-    all: mockShipments.length,
-    pending: mockShipments.filter((s) => s.status === 'pending').length,
-    shipped: mockShipments.filter((s) => s.status === 'shipped').length,
-    delivered: mockShipments.filter((s) => s.status === 'delivered').length,
-    problem: mockShipments.filter((s) => s.status === 'problem').length,
-  }), []);
+    all: shipments.length,
+    pending: shipments.filter((s) => s.status === 'pending').length,
+    shipped: shipments.filter((s) => s.status === 'shipped').length,
+    delivered: shipments.filter((s) => s.status === 'delivered').length,
+    problem: shipments.filter((s) => s.status === 'problem').length,
+  }), [shipments]);
 
   return (
     <div>
@@ -127,7 +128,8 @@ export function ShippingPage() {
               <div className="relative">
                 {selected.timeline.map((event, i) => {
                   const isLast = i === selected.timeline.length - 1;
-                  const isProblem = selected.status === 'problem' && !event.done && event.label.includes('adres');
+                  const isProblem = selected.status === 'problem' && !event.done && event.label === 'shipping_tl_waiting';
+                  const eventLabel = (t[event.label as keyof typeof t] as string | undefined) ?? event.label;
                   return (
                     <div key={i} className="flex gap-3">
                       <div className="flex flex-col items-center">
@@ -142,7 +144,7 @@ export function ShippingPage() {
                       </div>
                       <div className="pb-4 min-h-[2rem]">
                         <p className={classNames('text-sm font-medium', event.done ? 'text-content' : 'text-content-tertiary')}>
-                          {event.label}
+                          {eventLabel}
                         </p>
                         {event.timestamp && (
                           <p className="mt-0.5 text-xs text-content-tertiary">{formatDateTime(event.timestamp, lang)}</p>

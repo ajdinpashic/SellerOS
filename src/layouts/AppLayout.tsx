@@ -6,20 +6,16 @@ import { MobileMoreMenu } from '@/components/MobileMoreMenu';
 import { CommandPalette } from '@/components/CommandPalette';
 import { InstallBanner } from '@/components/InstallBanner';
 import type { Route } from '@/hooks/useRouter';
-import type { Order, Product, Customer } from '@/types';
 
 interface AppLayoutProps {
   route: Route;
   navigate: (route: Route) => void;
   children: ReactNode;
-  orders: Order[];
-  products: Product[];
-  customers: Customer[];
 }
 
 const fullBleedRoutes: Route['name'][] = ['inbox'];
 
-export function AppLayout({ route, navigate, children, orders, products, customers }: AppLayoutProps) {
+export function AppLayout({ route, navigate, children }: AppLayoutProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const fullBleed = fullBleedRoutes.includes(route.name);
@@ -38,6 +34,7 @@ export function AppLayout({ route, navigate, children, orders, products, custome
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header
           onCommandOpen={() => setCmdOpen(true)}
+          navigate={navigate}
         />
 
         <main className="flex-1 overflow-y-auto overscroll-contain pb-[calc(68px+env(safe-area-inset-bottom))] md:pb-0">
@@ -61,9 +58,6 @@ export function AppLayout({ route, navigate, children, orders, products, custome
         open={cmdOpen}
         onClose={() => setCmdOpen(false)}
         navigate={navigate}
-        orders={orders}
-        products={products}
-        customers={customers}
       />
 
       {/* PWA install prompt (mobile only) */}

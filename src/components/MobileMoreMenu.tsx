@@ -2,7 +2,7 @@ import { X, ShoppingCart, Users, Truck, FileText, BarChart3, Plug, Settings, Pac
 import { useI18n } from '@/locales';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { currentUser } from '@/data/user';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Route } from '@/hooks/useRouter';
 
 interface MobileMoreMenuProps {
@@ -13,6 +13,14 @@ interface MobileMoreMenuProps {
 
 export function MobileMoreMenu({ open, onClose, navigate }: MobileMoreMenuProps) {
   const { t } = useI18n();
+  const { profile } = useAuth();
+  const displayName = profile?.fullName || t.profile;
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join('') || '?';
 
   const items: { icon: typeof ShoppingCart; label: string; route: Route }[] = [
     { icon: PackagePlus, label: t.orders + ' +', route: { name: 'create-order' } },
@@ -64,9 +72,9 @@ export function MobileMoreMenu({ open, onClose, navigate }: MobileMoreMenuProps)
             className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-surface-2 active:bg-surface-2"
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[10px] font-semibold text-content-secondary">
-              {currentUser.initials}
+              {initials}
             </span>
-            <span className="truncate text-[12px] font-medium" style={{ color: 'var(--content)' }}>{currentUser.name}</span>
+            <span className="truncate text-[12px] font-medium" style={{ color: 'var(--content)' }}>{displayName}</span>
           </button>
           <ThemeToggle />
         </div>

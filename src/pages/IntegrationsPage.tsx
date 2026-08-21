@@ -10,11 +10,12 @@ import { IntegrationStatusBadge } from '@/components/Badges';
 import { Modal } from '@/components/Modal';
 import { useI18n } from '@/locales';
 import { classNames } from '@/utils/format';
-import { mockIntegrations } from '@/data/misc';
+import { useIntegrations } from '@/hooks/useIntegrations';
 import type { Integration } from '@/types';
 
 export function IntegrationsPage() {
   const { t } = useI18n();
+  const { integrations } = useIntegrations();
   const [selected, setSelected] = useState<Integration | null>(null);
   const [notifyToast, setNotifyToast] = useState('');
 
@@ -23,8 +24,8 @@ export function IntegrationsPage() {
     Truck, Package, Mail, Zap,
   };
 
-  const salesIntegrations = mockIntegrations.filter((i) => i.category === 'sales');
-  const shippingIntegrations = mockIntegrations.filter((i) => i.category === 'shipping');
+  const salesIntegrations = integrations.filter((i) => i.category === 'sales');
+  const shippingIntegrations = integrations.filter((i) => i.category === 'shipping');
 
   const renderRow = (int: Integration) => {
     const Icon = iconMap[int.icon] || Plug;

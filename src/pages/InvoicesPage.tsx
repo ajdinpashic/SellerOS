@@ -9,11 +9,12 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { Toast } from '@/components/ui';
 import { useI18n } from '@/locales';
 import { formatKM, formatDate } from '@/utils/format';
-import { mockInvoices } from '@/data/misc';
+import { useInvoices } from '@/hooks/useInvoices';
 import type { InvoiceStatus, Invoice } from '@/types';
 
 export function InvoicesPage() {
   const { t, lang } = useI18n();
+  const { invoices } = useInvoices();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
@@ -24,7 +25,7 @@ export function InvoicesPage() {
   }));
 
   const filtered = useMemo(() => {
-    return mockInvoices.filter((inv) => {
+    return invoices.filter((inv) => {
       const matchesSearch = !search ||
         inv.id.toLowerCase().includes(search.toLowerCase()) ||
         inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -32,7 +33,7 @@ export function InvoicesPage() {
       const matchesStatus = !statusFilter || inv.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);
+  }, [invoices, search, statusFilter]);
 
   const showToast = (msg: string) => {
     setToast(msg);

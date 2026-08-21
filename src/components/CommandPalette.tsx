@@ -2,16 +2,15 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, ShoppingCart, Package, Users, ArrowUp, ArrowDown, CornerDownLeft } from 'lucide-react';
 import { useI18n } from '@/locales';
 import { classNames } from '@/utils/format';
+import { useOrders } from '@/hooks/useOrders';
+import { useProducts } from '@/hooks/useProducts';
+import { useCustomers } from '@/hooks/useCustomers';
 import type { Route } from '@/hooks/useRouter';
-import type { Order, Product, Customer } from '@/types';
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   navigate: (route: Route) => void;
-  orders: Order[];
-  products: Product[];
-  customers: Customer[];
 }
 
 interface ResultItem {
@@ -22,8 +21,11 @@ interface ResultItem {
   category: 'order' | 'product' | 'customer';
 }
 
-export function CommandPalette({ open, onClose, navigate, orders, products, customers }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, navigate }: CommandPaletteProps) {
   const { t } = useI18n();
+  const { orders } = useOrders();
+  const { products } = useProducts();
+  const { customers } = useCustomers();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);

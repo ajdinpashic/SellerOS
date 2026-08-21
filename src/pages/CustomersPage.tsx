@@ -9,14 +9,15 @@ import { Modal } from '@/components/Modal';
 import { Avatar, Toast } from '@/components/ui';
 import { useI18n } from '@/locales';
 import { formatKM, formatDate } from '@/utils/format';
+import { apiErrorMessage, type ApiError, type CreateCustomerInput } from '@/lib/api';
 import type { Customer, SalesChannel } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
 interface CustomersPageProps {
   navigate: (route: Route) => void;
   customers: Customer[];
-  onCreate: (customer: Customer) => void;
-  onDelete: (id: string) => void;
+  onCreate: (input: CreateCustomerInput) => Promise<{ error?: ApiError; id?: string }>;
+  onDelete: (id: string) => Promise<{ error?: ApiError }>;
 }
 
 type SortField = 'name' | 'orderCount' | 'totalSpent' | 'lastOrderDate';
@@ -31,6 +32,8 @@ export function CustomersPage({ navigate, customers, onCreate, onDelete }: Custo
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [toast, setToast] = useState('');
+  const [formError, setFormError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -72,31 +75,40 @@ export function CustomersPage({ navigate, customers, onCreate, onDelete }: Custo
 
   const clearFilters = () => { setSearch(''); setChannelFilter(''); };
 
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    const customer: Customer = {
-      id: `c${Date.now()}`,
+  const handleCreate = async () => {
+    if (!newName.trim() || busy) return;
+    setBusy(true);
+    setFormError('');
+    // Backend validates and scopes the customer to the active business.
+    const result = await onCreate({
       name: newName.trim(),
       email: newEmail.trim(),
       phone: newPhone.trim(),
       address: newAddress.trim(),
       city: newCity.trim(),
-      primaryChannel: newChannel,
-      orderCount: 0,
-      totalSpent: 0,
-      lastOrderDate: new Date().toISOString(),
-    };
-    onCreate(customer);
+      notes: undefined,
+    });
+    setBusy(false);
+    if (result.error) {
+      setFormError(apiErrorMessage(result.error, t));
+      return;
+    }
     setShowCreate(false);
     setNewName(''); setNewEmail(''); setNewPhone(''); setNewAddress(''); setNewCity(''); setNewChannel('webshop');
     setToast(t.customerCreated);
     setTimeout(() => setToast(''), 2500);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    onDelete(deleteTarget.id);
+    setBusy(true);
+    const result = await onDelete(deleteTarget.id);
+    setBusy(false);
     setDeleteTarget(null);
+    if (result.error) {
+      setToast(apiErrorMessage(result.error, t));
+      setTimeout(() => setToast(''), 2500);
+    }
   };
 
   return (
@@ -213,6 +225,11 @@ export function CustomersPage({ navigate, customers, onCreate, onDelete }: Custo
             </select>
           </div>
         </div>
+        {formError && (
+          <p className="mt-3 rounded-md border border-danger/20 bg-danger-subtle px-3 py-2 text-[13px] text-danger">
+            {formError}
+          </p>
+        )}
       </Modal>
 
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t.deleteCustomerTitle} size="sm"

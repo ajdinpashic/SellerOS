@@ -4,15 +4,15 @@ import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
 import { useI18n } from '@/locales';
 import { formatKM, classNames } from '@/utils/format';
-import { mockProducts } from '@/data/products';
-import { mockCustomers } from '@/data/customers';
-import { mockOrders } from '@/data/orders';
-import type { Order, OrderItem, PaymentMethod, SalesChannel } from '@/types';
+import { apiErrorMessage, type ApiError, type CreateOrderInput } from '@/lib/api';
+import type { Customer, OrderItem, PaymentMethod, Product, SalesChannel } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
 interface CreateOrderPageProps {
   navigate: (route: Route) => void;
-  onCreate: (order: Order) => void;
+  products: Product[];
+  customers: Customer[];
+  onCreate: (input: CreateOrderInput) => Promise<{ error?: ApiError; displayId?: string }>;
 }
 
 const channels: { value: SalesChannel | 'manual'; labelKey: string }[] = [
@@ -30,7 +30,7 @@ const payments: { value: PaymentMethod; labelKey: string }[] = [
   { value: 'other', labelKey: 'pay_other' },
 ];
 
-export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
+export function CreateOrderPage({ navigate, products, customers, onCreate }: CreateOrderPageProps) {
   const { t, lang } = useI18n();
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -44,23 +44,25 @@ export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
   const [note, setNote] = useState('');
   const [successOpen, setSuccessOpen] = useState(false);
   const [createdId, setCreatedId] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const subtotal = items.reduce((s, i) => s + i.quantity * i.price, 0);
   const total = subtotal + shipping;
 
   const handleCustomerSelect = (id: string) => {
     setCustomerId(id);
-    const c = mockCustomers.find((x) => x.id === id);
+    const c = customers.find((x) => x.id === id);
     if (c) {
       setCustomerName(c.name);
-      setAddress(`${c.address}, ${c.city}`);
+      setAddress(c.address ? `${c.address}, ${c.city}`.replace(/, $/, '') : c.city);
       setPhone(c.phone);
       setEmail(c.email);
     }
   };
 
   const handleProductSelect = (idx: number, pid: string) => {
-    const p = mockProducts.find((x) => x.id === pid);
+    const p = products.find((x) => x.id === pid);
     setItems((prev) => prev.map((it, i) =>
       i === idx ? { ...it, productId: pid, name: p?.name || '', price: p?.price || 0 } : it,
     ));
@@ -73,36 +75,32 @@ export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
   const addItem = () => setItems((prev) => [...prev, { productId: '', name: '', quantity: 1, price: 0 }]);
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
-  const canSave = customerName.trim() && items.some((i) => i.productId) && address.trim();
+  const canSave = customerName.trim() && items.some((i) => i.productId) && address.trim() && !saving;
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     const validItems = items.filter((i) => i.productId);
-    const nextNum = 1043 + mockOrders.length;
-    const id = `#${nextNum}`;
-    const newOrder: Order = {
-      id,
-      customerId: customerId || 'manual',
-      customerName,
-      channel: (channel === 'manual' ? 'webshop' : channel) as SalesChannel,
-      items: validItems,
-      shipping,
+    setSaving(true);
+    setError('');
+    // The server validates items, snapshots prices and computes the
+    // total — the client never sends a total_amount.
+    const result = await onCreate({
+      customerId: customerId || null,
+      channel,
       paymentMethod,
-      status: 'pending',
-      date: new Date().toISOString(),
+      shipping,
       address,
       phone,
       email,
       note: note || undefined,
-      timeline: [
-        { status: 'received', label: 'tl_received', timestamp: new Date().toISOString(), done: true },
-        { status: 'confirmed', label: 'tl_confirmed', timestamp: '', done: false },
-        { status: 'ready', label: 'tl_packing', timestamp: '', done: false },
-        { status: 'shipped', label: 'tl_shipped', timestamp: '', done: false },
-        { status: 'delivered', label: 'tl_delivered', timestamp: '', done: false },
-      ],
-    };
-    onCreate(newOrder);
-    setCreatedId(id);
+      items: validItems.map((i) => ({ productId: i.productId, quantity: i.quantity, price: i.price, variant: i.variant })),
+    });
+    setSaving(false);
+    if (result.error) {
+      setError(apiErrorMessage(result.error, t));
+      return;
+    }
+    setCreatedId(result.displayId ?? '');
     setSuccessOpen(true);
   };
 
@@ -128,7 +126,7 @@ export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
                 <label className="label">{t.selectCustomer}</label>
                 <select className="input cursor-pointer" value={customerId} onChange={(e) => handleCustomerSelect(e.target.value)}>
                   <option value="">—</option>
-                  {mockCustomers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
@@ -177,7 +175,7 @@ export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
                     <label className="label">{t.selectProduct}</label>
                     <select className="input cursor-pointer" value={item.productId} onChange={(e) => handleProductSelect(idx, e.target.value)}>
                       <option value="">—</option>
-                      {mockProducts.map((p) => <option key={p.id} value={p.id}>{p.name} — {formatKM(p.price, lang)}</option>)}
+                      {products.map((p) => <option key={p.id} value={p.id}>{p.name} — {formatKM(p.price, lang)}</option>)}
                     </select>
                   </div>
                   <div className="w-20">
@@ -219,6 +217,12 @@ export function CreateOrderPage({ navigate, onCreate }: CreateOrderPageProps) {
             <label className="label">{t.noteLabel}</label>
             <textarea className="input min-h-[80px] resize-y" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+
+          {error && (
+            <p className="rounded-md border border-danger/20 bg-danger-subtle px-3 py-2 text-[13px] text-danger">
+              {error}
+            </p>
+          )}
         </div>
 
         {/* Summary sidebar */}

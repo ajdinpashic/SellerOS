@@ -4,24 +4,38 @@ import { useI18n } from '@/locales';
 import { classNames, formatKM, formatDate, orderTotal } from '@/utils/format';
 import { Avatar } from '@/components/ui';
 import { ChannelIcon, OrderStatusBadge } from '@/components/Badges';
-import { mockConversations, type Conversation } from '@/data/inbox';
-import { mockOrders } from '@/data/orders';
+import { useConversations } from '@/hooks/useConversations';
+import { useOrders } from '@/hooks/useOrders';
+import { apiErrorMessage } from '@/lib/api';
+import type { Conversation } from '@/data/inbox';
 import type { Route } from '@/hooks/useRouter';
 
 interface InboxPageProps {
   navigate: (route: Route) => void;
 }
 
+/** Mock inbox data uses "09:42"-style strings; backend rows are ISO. */
+function formatTime(time: string, lang: string): string {
+  if (/^\d{2}:\d{2}$/.test(time)) return time;
+  try {
+    return new Date(time).toLocaleTimeString(lang === 'en' ? 'en-US' : 'bs-BA', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return time;
+  }
+}
+
 export function InboxPage({ navigate }: InboxPageProps) {
   const { t, lang } = useI18n();
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
-  const [activeId, setActiveId] = useState<string>(mockConversations[0].id);
+  const { conversations, sendMessage } = useConversations();
+  const { orders } = useOrders();
+  const [activeId, setActiveId] = useState<string>('');
   const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState('');
   const [contextOpen, setContextOpen] = useState(false);
+  const [sendError, setSendError] = useState('');
 
-  const active = conversations.find((c) => c.id === activeId);
+  const active = conversations.find((c) => c.id === activeId) ?? conversations[0];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -32,18 +46,17 @@ export function InboxPage({ navigate }: InboxPageProps) {
   const selectConversation = (id: string) => {
     setActiveId(id);
     setMobileView('thread');
-    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
   };
 
-  const sendMessage = () => {
+  const handleSend = async () => {
     const text = draft.trim();
     if (!text || !active) return;
-    const now = new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : 'bs-BA', { hour: '2-digit', minute: '2-digit' });
-    setConversations((prev) => prev.map((c) =>
-      c.id === active.id
-        ? { ...c, lastTime: now, messages: [...c.messages, { id: `m${Date.now()}`, from: 'me', text, time: now }] }
-        : c,
-    ));
+    setSendError('');
+    const result = await sendMessage(active.id, text);
+    if (result.error) {
+      setSendError(apiErrorMessage(result.error, t));
+      return;
+    }
     setDraft('');
   };
 
@@ -95,7 +108,7 @@ export function InboxPage({ navigate }: InboxPageProps) {
                         <p className={classNames('truncate text-[14px] font-medium text-content', c.unread > 0 && 'font-semibold')}>
                           {c.customerName}
                         </p>
-                        <span className="shrink-0 text-[11px] text-content-tertiary tnum">{c.lastTime}</span>
+                        <span className="shrink-0 text-[11px] text-content-tertiary tnum">{formatTime(c.lastTime, lang)}</span>
                       </div>
                       <p className="mt-0.5 truncate text-[13px] text-content-secondary">
                         {c.messages[c.messages.length - 1]?.text}
@@ -174,7 +187,7 @@ export function InboxPage({ navigate }: InboxPageProps) {
                       'mt-1 text-right text-[10px] tnum',
                       m.from === 'me' ? 'text-white/70' : 'text-content-tertiary',
                     )}>
-                      {m.time}
+                      {formatTime(m.time, lang)}
                     </p>
                   </div>
                 </div>
@@ -192,15 +205,18 @@ export function InboxPage({ navigate }: InboxPageProps) {
                   type="text"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
                   placeholder={t.replyPlaceholder}
                   className="input flex-1"
                   style={{ minHeight: '44px' }}
                 />
-                <button onClick={sendMessage} className="btn-primary shrink-0" disabled={!draft.trim()} style={{ minWidth: '44px', minHeight: '44px' }}>
+                <button onClick={() => void handleSend()} className="btn-primary shrink-0" disabled={!draft.trim()} style={{ minWidth: '44px', minHeight: '44px' }}>
                   <Send className="h-4 w-4" />
                 </button>
               </div>
+              {sendError && (
+                <p className="mt-2 text-[12px] text-danger">{sendError}</p>
+              )}
             </div>
           </>
         )}
@@ -274,7 +290,7 @@ export function InboxPage({ navigate }: InboxPageProps) {
                   <p className="section-label mb-2">{t.previousOrders}</p>
                   <ul className="space-y-1.5">
                     {active.previousOrderIds.map((id) => {
-                      const order = mockOrders.find((o) => o.id === id);
+                      const order = orders.find((o) => o.id === id);
                       if (!order) return null;
                       return (
                         <li key={id}>
@@ -391,7 +407,7 @@ export function InboxPage({ navigate }: InboxPageProps) {
               <p className="section-label mb-3">{t.previousOrders}</p>
               <ul className="space-y-1.5">
                 {active.previousOrderIds.map((id) => {
-                  const order = mockOrders.find((o) => o.id === id);
+                  const order = orders.find((o) => o.id === id);
                   if (!order) return null;
                   return (
                     <li key={id}>

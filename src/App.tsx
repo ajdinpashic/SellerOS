@@ -1,7 +1,18 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { I18nProvider } from '@/locales';
 import { AppLayout } from '@/layouts/AppLayout';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext';
+import { AuthShell } from '@/components/AuthShell';
 import { useRouter } from '@/hooks/useRouter';
+import { useOrders } from '@/hooks/useOrders';
+import { useProducts } from '@/hooks/useProducts';
+import { useCustomers } from '@/hooks/useCustomers';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
+import { OnboardingPage } from '@/pages/OnboardingPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { InboxPage } from '@/pages/InboxPage';
 import { OrdersPage } from '@/pages/OrdersPage';
@@ -17,62 +28,155 @@ import { InvoicesPage } from '@/pages/InvoicesPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { IntegrationsPage } from '@/pages/IntegrationsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import { mockOrders } from '@/data/orders';
-import { mockProducts } from '@/data/products';
-import { mockCustomers } from '@/data/customers';
-import type { Order, Product, Customer } from '@/types';
 
 export default function App() {
+  return (
+    <I18nProvider>
+      <AuthProvider>
+        <BusinessProvider>
+          <AppShell />
+        </BusinessProvider>
+      </AuthProvider>
+    </I18nProvider>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-surface-1">
+      <div className="flex flex-col items-center gap-3">
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-md text-base font-bold text-white"
+          style={{ background: 'var(--accent)' }}
+        >
+          S
+        </div>
+        <p className="text-[13px]" style={{ color: 'var(--content-tertiary)' }}>SellerOS</p>
+      </div>
+    </div>
+  );
+}
+
+function AppShell() {
   const { route, navigate } = useRouter();
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const auth = useAuth();
+  const biz = useBusiness();
+  const orders = useOrders();
+  const products = useProducts();
+  const customers = useCustomers();
 
-  const handleCreateOrder = (order: Order) => {
-    setOrders((prev) => [order, ...prev]);
-  };
+  // Auth + membership state must settle before rendering anything —
+  // the app must never assume the user is authenticated.
+  const booting = auth.status === 'loading' || (auth.status === 'signed-in' && biz.status === 'loading');
+  if (booting) return <LoadingScreen />;
 
-  const handleCreateProduct = (product: Product) => {
-    setProducts((prev) => [product, ...prev]);
-  };
+  const authed = auth.status === 'signed-in' || auth.status === 'demo';
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
+  // ─── Public auth screens ───
+  if (!authed) {
+    let page: ReactNode;
+    switch (route.name) {
+      case 'register': page = <RegisterPage navigate={navigate} />; break;
+      case 'forgot-password': page = <ForgotPasswordPage navigate={navigate} />; break;
+      case 'reset-password': page = <ResetPasswordPage />; break;
+      default: page = <LoginPage navigate={navigate} />;
+    }
+    return <AuthShell>{page}</AuthShell>;
+  }
 
-  const handleCreateCustomer = (customer: Customer) => {
-    setCustomers((prev) => [customer, ...prev]);
-  };
+  // Password-recovery session: only the reset screen is available.
+  if (auth.recoveryActive) {
+    return (
+      <AuthShell>
+        <ResetPasswordPage />
+      </AuthShell>
+    );
+  }
 
-  const handleDeleteCustomer = (id: string) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== id));
-  };
+  // ─── Onboarding: signed in but no business yet ───
+  if (!biz.business) {
+    return (
+      <AuthShell>
+        <OnboardingPage />
+      </AuthShell>
+    );
+  }
 
-  let page: React.ReactNode;
+  // ─── Authenticated app ───
+  let page: ReactNode;
   switch (route.name) {
-    case 'dashboard': page = <DashboardPage navigate={navigate} orders={orders} />; break;
     case 'inbox': page = <InboxPage navigate={navigate} />; break;
-    case 'orders': page = <OrdersPage navigate={navigate} orders={orders} />; break;
-    case 'order-detail': page = <OrderDetailPage key={route.id} orderId={route.id} navigate={navigate} orders={orders} />; break;
-    case 'create-order': page = <CreateOrderPage navigate={navigate} onCreate={handleCreateOrder} />; break;
-    case 'products': page = <ProductsPage navigate={navigate} products={products} onCreate={handleCreateProduct} onDelete={handleDeleteProduct} />; break;
-    case 'product-detail': page = <ProductDetailPage productId={route.id} navigate={navigate} products={products} onDelete={handleDeleteProduct} />; break;
-    case 'inventory': page = <InventoryPage products={products} setProducts={setProducts} />; break;
-    case 'customers': page = <CustomersPage navigate={navigate} customers={customers} onCreate={handleCreateCustomer} onDelete={handleDeleteCustomer} />; break;
-    case 'customer-detail': page = <CustomerDetailPage customerId={route.id} navigate={navigate} customers={customers} />; break;
+    case 'orders': page = <OrdersPage navigate={navigate} orders={orders.orders} />; break;
+    case 'order-detail':
+      page = (
+        <OrderDetailPage
+          key={route.id}
+          orderId={route.id}
+          navigate={navigate}
+          orders={orders.orders}
+          customers={customers.customers}
+          onStatusChange={orders.changeStatus}
+        />
+      );
+      break;
+    case 'create-order':
+      page = (
+        <CreateOrderPage
+          navigate={navigate}
+          onCreate={orders.createOrder}
+          products={products.products}
+          customers={customers.customers}
+        />
+      );
+      break;
+    case 'products':
+      page = (
+        <ProductsPage
+          navigate={navigate}
+          products={products.products}
+          onCreate={products.createProduct}
+          onDelete={products.deleteProduct}
+        />
+      );
+      break;
+    case 'product-detail':
+      page = (
+        <ProductDetailPage
+          productId={route.id}
+          navigate={navigate}
+          products={products.products}
+          onDelete={products.deleteProduct}
+        />
+      );
+      break;
+    case 'inventory': page = <InventoryPage />; break;
+    case 'customers':
+      page = (
+        <CustomersPage
+          navigate={navigate}
+          customers={customers.customers}
+          onCreate={customers.createCustomer}
+          onDelete={customers.deleteCustomer}
+        />
+      );
+      break;
+    case 'customer-detail':
+      page = (
+        <CustomerDetailPage
+          customerId={route.id}
+          navigate={navigate}
+          customers={customers.customers}
+          orders={orders.orders}
+        />
+      );
+      break;
     case 'shipping': page = <ShippingPage />; break;
     case 'invoices': page = <InvoicesPage />; break;
     case 'reports': page = <ReportsPage />; break;
     case 'integrations': page = <IntegrationsPage />; break;
     case 'settings': page = <SettingsPage />; break;
-    default: page = <DashboardPage navigate={navigate} orders={orders} />;
+    default: page = <DashboardPage navigate={navigate} orders={orders.orders} />;
   }
 
-  return (
-    <I18nProvider>
-      <AppLayout route={route} navigate={navigate} orders={orders} products={products} customers={customers}>
-        {page}
-      </AppLayout>
-    </I18nProvider>
-  );
+  return <AppLayout route={route} navigate={navigate}>{page}</AppLayout>;
 }

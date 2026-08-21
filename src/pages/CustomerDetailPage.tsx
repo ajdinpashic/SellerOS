@@ -5,17 +5,17 @@ import { ChannelBadge, OrderStatusBadge } from '@/components/Badges';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { useI18n } from '@/locales';
 import { formatKM, formatDate, orderTotal } from '@/utils/format';
-import type { Customer } from '@/types';
-import { mockOrders } from '@/data/orders';
+import type { Customer, Order } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
 interface CustomerDetailPageProps {
   customerId: string;
   navigate: (route: Route) => void;
   customers: Customer[];
+  orders: Order[];
 }
 
-export function CustomerDetailPage({ customerId, navigate, customers }: CustomerDetailPageProps) {
+export function CustomerDetailPage({ customerId, navigate, customers, orders }: CustomerDetailPageProps) {
   const { t, lang } = useI18n();
   const customer = customers.find((c) => c.id === customerId);
 
@@ -28,7 +28,7 @@ export function CustomerDetailPage({ customerId, navigate, customers }: Customer
     );
   }
 
-  const orders = mockOrders.filter((o) => o.customerId === customer.id);
+  const customerOrders = orders.filter((o) => o.customerId === customer.id);
   const avgOrder = customer.orderCount > 0 ? customer.totalSpent / customer.orderCount : 0;
 
   return (
@@ -67,7 +67,7 @@ export function CustomerDetailPage({ customerId, navigate, customers }: Customer
         <div className="min-w-0 lg:col-span-2">
           <Panel>
             <SectionHeader title={t.orderHistory} />
-            {orders.length === 0 ? (
+            {customerOrders.length === 0 ? (
               <p className="px-4 py-10 text-center text-[13px] text-content-tertiary">{t.noOrders}</p>
             ) : (
               <Table>
@@ -81,7 +81,7 @@ export function CustomerDetailPage({ customerId, navigate, customers }: Customer
                   </TR>
                 </THead>
                 <TBody>
-                  {orders.map((o) => (
+                  {customerOrders.map((o) => (
                     <TR key={o.id} onClick={() => navigate({ name: 'order-detail', id: o.id })}>
                       <TD className="font-semibold">{o.id}</TD>
                       <TD><ChannelBadge channel={o.channel} /></TD>

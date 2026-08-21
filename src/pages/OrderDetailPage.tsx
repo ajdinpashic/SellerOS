@@ -4,19 +4,21 @@ import {
   XCircle, StickyNote, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { OrderStatusBadge, ChannelBadge } from '@/components/Badges';
-import { Panel, SectionHeader, Avatar } from '@/components/ui';
+import { Panel, SectionHeader, Avatar, Toast } from '@/components/ui';
 import { Modal } from '@/components/Modal';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
 import { useI18n } from '@/locales';
 import { formatKM, formatDate, formatDateTime, orderSubtotal, orderTotal, classNames } from '@/utils/format';
-import { mockCustomers } from '@/data/customers';
-import type { Order, OrderStatus } from '@/types';
+import { apiErrorMessage, type ApiError } from '@/lib/api';
+import type { Customer, Order, OrderStatus } from '@/types';
 import type { Route } from '@/hooks/useRouter';
 
 interface OrderDetailPageProps {
   orderId: string;
   navigate: (route: Route) => void;
   orders: Order[];
+  customers: Customer[];
+  onStatusChange: (orderId: string, status: OrderStatus) => Promise<{ error?: ApiError }>;
 }
 
 const statusFlow: { status: Order['timeline'][number]['status']; labelKey: string }[] = [
@@ -31,11 +33,13 @@ const statusOrder: Record<OrderStatus, number> = {
   pending: 0, confirmed: 1, ready: 2, shipped: 3, delivered: 4, cancelled: 1,
 };
 
-export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPageProps) {
+export function OrderDetailPage({ orderId, navigate, orders, customers, onStatusChange }: OrderDetailPageProps) {
   const { t, lang } = useI18n();
-  const [order, setOrder] = useState<Order | undefined>(orders.find((o) => o.id === orderId));
+  const order = orders.find((o) => o.id === orderId);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [customerExpanded, setCustomerExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
 
   if (!order) {
     return (
@@ -53,7 +57,7 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
     );
   }
 
-  const customer = mockCustomers.find((c) => c.id === order.customerId);
+  const customer = customers.find((c) => c.id === order.customerId);
   const customerOrders = orders.filter((o) => o.customerId === order.customerId && o.id !== order.id);
   const subtotal = orderSubtotal(order.items);
   const total = orderTotal(order.items, order.shipping);
@@ -61,18 +65,19 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
   const isCancelled = order.status === 'cancelled';
   const isDelivered = order.status === 'delivered';
 
-  const advanceStatus = (next: OrderStatus) => {
-    const newTimeline = order.timeline.map((e, i) => ({
-      ...e,
-      done: i <= statusOrder[next],
-      timestamp: i <= statusOrder[next] && !e.done ? new Date().toISOString() : e.timestamp,
-    }));
-    setOrder({ ...order, status: next, timeline: newTimeline });
+  // Status changes go through the backend (RLS + transition rules +
+  // inventory + status history). The UI never mutates the order locally.
+  const advanceStatus = async (next: OrderStatus) => {
+    if (busy) return;
+    setBusy(true);
+    const result = await onStatusChange(order.id, next);
+    setBusy(false);
+    if (result.error) setToast(apiErrorMessage(result.error, t));
   };
 
-  const cancelOrder = () => {
-    setOrder({ ...order, status: 'cancelled' });
+  const cancelOrder = async () => {
     setCancelModalOpen(false);
+    await advanceStatus('cancelled');
   };
 
   const nextAction = !isCancelled && !isDelivered ? (
@@ -123,7 +128,7 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
               {t.backToOrders}
             </button>
             {nextAction && (
-              <button onClick={nextAction.run} className="btn-primary">
+              <button onClick={() => void nextAction.run()} disabled={busy} className="btn-primary">
                 {(() => { const Icon = nextAction.icon; return <Icon className="h-3.5 w-3.5" />; })()}
                 {nextAction.label}
               </button>
@@ -401,7 +406,7 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
                 {t.cancel}
               </button>
             )}
-            <button onClick={nextAction.run} className="btn-primary flex-1 min-h-[48px] text-[15px]">
+            <button onClick={() => void nextAction.run()} disabled={busy} className="btn-primary flex-1 min-h-[48px] text-[15px]">
               {(() => { const Icon = nextAction.icon; return <Icon className="h-5 w-5" />; })()}
               {nextAction.label}
             </button>
@@ -417,7 +422,7 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
         footer={
           <>
             <button onClick={() => setCancelModalOpen(false)} className="btn-secondary">{t.cancelBtn}</button>
-            <button onClick={cancelOrder} className="btn-danger">{t.cancel}</button>
+            <button onClick={() => void cancelOrder()} disabled={busy} className="btn-danger">{t.cancel}</button>
           </>
         }
       >
@@ -425,6 +430,8 @@ export function OrderDetailPage({ orderId, navigate, orders }: OrderDetailPagePr
           {t.cancelOrderConfirm} <span className="text-content-tertiary">{t.irreversible}</span>
         </p>
       </Modal>
+
+      <Toast message={toast} />
     </div>
   );
 }

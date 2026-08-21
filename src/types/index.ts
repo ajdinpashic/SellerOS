@@ -21,6 +21,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;           // display id e.g. "#1042"
+  key: string;          // backend uuid — used for API calls
   customerId: string;
   customerName: string;
   channel: SalesChannel;
