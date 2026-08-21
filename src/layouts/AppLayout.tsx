@@ -40,7 +40,7 @@ export function AppLayout({ route, navigate, children, orders, products, custome
           onCommandOpen={() => setCmdOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto overscroll-contain">
+        <main className="flex-1 overflow-y-auto overscroll-contain pb-[calc(68px+env(safe-area-inset-bottom))] md:pb-0">
           {fullBleed ? (
             <div className="h-full min-h-full">{children}</div>
           ) : (
@@ -50,7 +50,7 @@ export function AppLayout({ route, navigate, children, orders, products, custome
           )}
         </main>
 
-        {/* Mobile bottom nav — in flow, sits flush at the bottom */}
+        {/* Mobile bottom nav — fixed to viewport bottom */}
         <MobileNav current={route.name} navigate={navigate} onMoreClick={() => setMoreOpen(true)} />
       </div>
 

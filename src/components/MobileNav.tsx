@@ -26,7 +26,7 @@ export function MobileNav({ current, navigate, onMoreClick }: MobileNavProps) {
 
 return (
     <nav
-      className="md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 md:hidden"
       style={{
         background: 'var(--surface-0)',
         paddingBottom: 'env(safe-area-inset-bottom)',
