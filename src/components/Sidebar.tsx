@@ -156,6 +156,7 @@ export function Sidebar({ current, navigate }: SidebarProps) {
                   <li key={item.route.name}>
                     <button
                       onClick={() => handleNav(item)}
+                      data-tour={`nav-${item.route.name}`}
                       className={classNames(
                         'group relative flex h-[30px] w-full items-center gap-2 rounded px-2 text-[13px] font-medium transition-colors',
                         active
@@ -198,6 +199,7 @@ export function Sidebar({ current, navigate }: SidebarProps) {
               <button
                 key={item.labelKey}
                 onClick={() => handleNav(item)}
+                data-tour={item.labelKey === 'settings' ? 'nav-settings' : undefined}
                 className={classNames(
                   'group relative flex h-[30px] w-full items-center gap-2 rounded px-2 text-[13px] font-medium transition-colors',
                   active

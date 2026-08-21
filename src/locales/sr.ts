@@ -438,6 +438,27 @@ const sr: LocaleDict = {
   shipping_tl_waiting: 'Čeka obradu',
   shipping_tl_in_transit: 'U tranzitu',
   shipping_tl_delivered: 'Dostavljeno',
+
+  // Onboarding tour
+  tour_start: 'Vodič kroz aplikaciju',
+  tour_skip: 'Preskoči',
+  tour_next: 'Dalje',
+  tour_back: 'Nazad',
+  tour_done: 'Kreni',
+  tour_hello_title: 'Dobrodošli u SellerOS',
+  tour_hello_body: 'Upravljajte prodajom sa OLX-a, Instagrama, Facebooka i webshopa na jednom mestu — porudžbine, zalihe, kupci i dostava.',
+  tour_inbox_title: 'Inbox — razgovori sa kupcima',
+  tour_inbox_body: 'Sve poruke kupaca sa svih kanala na jednom mestu. Odgovarajte i pretvarajte razgovore u porudžbine.',
+  tour_orders_title: 'Porudžbine',
+  tour_orders_body: 'Kreirajte i pratite porudžbine kroz ceo tok — od potvrde, preko pakovanja, do dostave.',
+  tour_products_title: 'Proizvodi i lager',
+  tour_products_body: 'Dodajte proizvode i pratite zalihe. Rezervacije se ažuriraju automatski pri svakoj porudžbini.',
+  tour_customers_title: 'Kupci',
+  tour_customers_body: 'Vaša baza kupaca sa istorijom porudžbina i potrošnjom.',
+  tour_shipping_title: 'Dostava i računi',
+  tour_shipping_body: 'Pošiljke, tracking i računi za svaku porudžbinu.',
+  tour_done_title: 'Spremni ste!',
+  tour_done_body: 'Kreirajte prvu porudžbinu ili dodajte proizvode. Vodič možete ponovo otvoriti bilo kada.',
 };
 
 export default sr;

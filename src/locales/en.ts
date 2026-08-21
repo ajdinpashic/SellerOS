@@ -438,6 +438,27 @@ const en: LocaleDict = {
   shipping_tl_waiting: 'Awaiting processing',
   shipping_tl_in_transit: 'In transit',
   shipping_tl_delivered: 'Delivered',
+
+  // Onboarding tour
+  tour_start: 'App tour',
+  tour_skip: 'Skip',
+  tour_next: 'Next',
+  tour_back: 'Back',
+  tour_done: 'Let\'s go',
+  tour_hello_title: 'Welcome to SellerOS',
+  tour_hello_body: 'Manage sales from OLX, Instagram, Facebook and your webshop in one place — orders, inventory, customers and shipping.',
+  tour_inbox_title: 'Inbox — customer conversations',
+  tour_inbox_body: 'All customer messages from every channel in one place. Reply and turn conversations into orders.',
+  tour_orders_title: 'Orders',
+  tour_orders_body: 'Create and track orders through the full flow — from confirmation and packing to delivery.',
+  tour_products_title: 'Products & inventory',
+  tour_products_body: 'Add products and track stock. Reservations update automatically with every order.',
+  tour_customers_title: 'Customers',
+  tour_customers_body: 'Your customer base with order history and spending.',
+  tour_shipping_title: 'Shipping & invoices',
+  tour_shipping_body: 'Shipments, tracking and invoices for every order.',
+  tour_done_title: 'You\'re all set!',
+  tour_done_body: 'Create your first order or add products. You can reopen this tour anytime.',
 };
 
 export default en;

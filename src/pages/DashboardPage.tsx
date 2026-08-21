@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { ArrowRight, Plus, Truck, ChevronRight, Package, ShoppingCart, Plug } from 'lucide-react';
+import { ArrowRight, Plus, Truck, ChevronRight, Package, ShoppingCart, Plug, Sparkles } from 'lucide-react';
 import { Panel, SectionHeader, StatStrip, type StatItem } from '@/components/ui';
 import { OrderStatusBadge, ChannelBadge, ShipmentStatusBadge } from '@/components/Badges';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/Table';
@@ -11,6 +11,7 @@ import { formatKM, formatDate, orderTotal, classNames, interpolate } from '@/uti
 import { useProducts } from '@/hooks/useProducts';
 import { useShipments } from '@/hooks/useShipments';
 import { useAuth } from '@/contexts/AuthContext';
+import { openTour } from '@/components/OnboardingTour';
 import { salesSeries } from '@/lib/reports';
 import type { Order } from '@/types';
 import type { Route } from '@/hooks/useRouter';
@@ -93,6 +94,10 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
               {t.empty_dashboard_desc}
             </p>
           </div>
+          <button onClick={openTour} className="btn-ghost btn-sm">
+            <Sparkles className="h-4 w-4" />
+            {t.tour_start}
+          </button>
         </div>
 
         {/* Empty dashboard state */}
@@ -193,10 +198,16 @@ export function DashboardPage({ navigate, orders }: DashboardProps) {
             })}
           </p>
         </div>
-        <button onClick={() => navigate({ name: 'create-order' })} className="btn-primary">
-          <Plus className="h-4 w-4" />
-          {t.newOrder}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={openTour} className="btn-ghost btn-sm">
+            <Sparkles className="h-4 w-4" />
+            {t.tour_start}
+          </button>
+          <button onClick={() => navigate({ name: 'create-order' })} className="btn-primary">
+            <Plus className="h-4 w-4" />
+            {t.newOrder}
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

@@ -8,6 +8,7 @@ import { useRouter } from '@/hooks/useRouter';
 import { useOrders } from '@/hooks/useOrders';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
+import { OnboardingTour } from '@/components/OnboardingTour';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
@@ -203,5 +204,10 @@ function AppShell() {
     default: page = <DashboardPage navigate={navigate} orders={orders.orders} />;
   }
 
-  return <AppLayout route={route} navigate={navigate}>{page}</AppLayout>;
+  return (
+    <AppLayout route={route} navigate={navigate}>
+      {page}
+      <OnboardingTour />
+    </AppLayout>
+  );
 }
