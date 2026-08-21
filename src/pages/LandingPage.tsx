@@ -23,6 +23,13 @@ export function LandingPage({ navigate }: LandingPageProps) {
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 
+  // html/body have overflow:hidden for AppLayout — enable scrolling for landing page
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (root) root.style.overflowY = 'auto';
+    return () => { if (root) root.style.overflowY = ''; };
+  }, []);
+
   useEffect(() => {
     if (!langOpen) return;
     const handler = (e: MouseEvent) => {
@@ -35,7 +42,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
   const currentLang = languages.find((l) => l.code === lang)!;
 
   return (
-    <div className="min-h-dvh overflow-y-auto bg-surface-1">
+    <div className="min-h-dvh bg-surface-1">
       {/* Nav */}
       <nav className="sticky top-0 z-40 border-b border-border bg-surface-0/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
