@@ -111,14 +111,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (fullName: string, email: string, password: string): Promise<AuthError | null> => {
-    if (!supabase) return { message: 'Supabase not configured' };
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    console.log('[Auth] signUp response:', { userId: data?.user?.id, hasSession: !!data?.session, errorCode: error?.code, errorMsg: error?.message });
-    return normalizeError(error);
+    if (!supabase) return { message: 'Supabase not configured. VITE_SUPABASE_URL=' + String(import.meta.env.VITE_SUPABASE_URL) + ' KEY_SET=' + String(!!import.meta.env.VITE_SUPABASE_ANON_KEY) };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      });
+      return normalizeError(error);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { message: 'Network/catch error: ' + msg };
+    }
   }, []);
 
   const signOut = useCallback(async () => {

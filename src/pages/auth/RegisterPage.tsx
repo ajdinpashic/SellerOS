@@ -31,17 +31,23 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
     }
     setError('');
     setBusy(true);
-    console.log('[Register] calling signUp with:', { email: email.trim(), fullName: fullName.trim() });
-    const err = await signUp(fullName.trim(), email.trim(), password);
-    console.log('[Register] signUp result:', err);
-    if (err) {
-      setError(authErrorMessage(err, t));
+    try {
+      const err = await signUp(fullName.trim(), email.trim(), password);
+      if (err) {
+        alert('SIGNUP ERROR: code=' + (err.code || 'none') + ' message=' + (err.message || 'none'));
+        setError(authErrorMessage(err, t));
+        setBusy(false);
+        return;
+      }
+      setConfirmationEmail(email.trim());
+      setConfirmationSent(true);
       setBusy(false);
-      return;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      alert('SIGNUP EXCEPTION: ' + msg);
+      setError(t.auth_error_generic);
+      setBusy(false);
     }
-    setConfirmationEmail(email.trim());
-    setConfirmationSent(true);
-    setBusy(false);
   };
 
   const handleResend = async () => {
