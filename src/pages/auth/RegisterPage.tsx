@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { Building2 } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { useI18n } from '@/locales';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBusiness } from '@/contexts/BusinessContext';
 import { authErrorMessage } from '@/lib/auth';
 import type { Route } from '@/hooks/useRouter';
 
@@ -13,20 +12,21 @@ interface RegisterPageProps {
 export function RegisterPage({ navigate }: RegisterPageProps) {
   const { t } = useI18n();
   const { signUp } = useAuth();
-  const { createBusiness } = useBusiness();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [businessName, setBusinessName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (password !== confirm) {
-      setError(t.auth_passwords_mismatch);
+    if (password.length < 8) {
+      setError(t.auth_error_weak_password);
       return;
     }
     setError('');
@@ -37,30 +37,73 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
       setBusy(false);
       return;
     }
-    // After successful signup, create the business
-    const trimmedBiz = businessName.trim();
-    if (trimmedBiz.length >= 2) {
-      const bizResult = await createBusiness(trimmedBiz);
-      if (bizResult.error) {
-        // Business creation failed, but account was created
-        // Send to onboarding to create business
-        navigate({ name: 'onboarding' });
-        setBusy(false);
-        return;
-      }
-    } else {
-      // No business name, send to onboarding
-      navigate({ name: 'onboarding' });
-      setBusy(false);
-      return;
-    }
-    // If email confirmation is enabled, signUp returns success but the
-    // user must confirm first — send them to the sign-in screen.
-    // If no email confirmation, user is already signed in and business was created.
-    // The AppShell will detect no business and show onboarding.
-    navigate({ name: 'login' });
+    setConfirmationEmail(email.trim());
+    setConfirmationSent(true);
     setBusy(false);
   };
+
+  const handleResend = async () => {
+    if (resending) return;
+    setResending(true);
+    setResent(false);
+    const err = await signUp(fullName.trim(), confirmationEmail, password);
+    if (!err) setResent(true);
+    setResending(false);
+  };
+
+  if (confirmationSent) {
+    return (
+      <div className="space-y-5">
+        <button
+          type="button"
+          onClick={() => navigate({ name: 'login' })}
+          className="flex items-center gap-1.5 text-[13px] text-content-tertiary hover:text-content-secondary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t.back}
+        </button>
+
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-subtle">
+            <Mail className="h-5 w-5 text-accent" />
+          </div>
+          <h1 className="mt-4 text-lg font-semibold tracking-tight text-content">
+            {t.auth_email_confirmation_title}
+          </h1>
+          <p className="mt-1 text-[13px] text-content-secondary">
+            {t.auth_email_confirmation_desc}
+          </p>
+          <p className="mt-2 text-[13px] font-medium text-content">
+            {confirmationEmail}
+          </p>
+        </div>
+
+        {resent && (
+          <p className="rounded-md border border-success/20 bg-success-subtle px-3 py-2 text-[13px] text-success">
+            {t.auth_email_confirmation_resent}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending}
+            className="btn-secondary w-full"
+          >
+            {resending ? t.loading : t.auth_email_confirmation_resend}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ name: 'login' })}
+            className="btn-primary w-full"
+          >
+            {t.auth_email_confirmation_back_to_login}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,39 +146,13 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
         <input
           type="password"
           autoComplete="new-password"
-          minLength={6}
+          minLength={8}
           required
           className="input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-      </div>
-
-      <div>
-        <label className="label">{t.auth_confirmPassword}</label>
-        <input
-          type="password"
-          autoComplete="new-password"
-          minLength={6}
-          required
-          className="input"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="label">{t.onboarding_businessName}</label>
-        <div className="relative">
-          <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" />
-          <input
-            className="input pl-9"
-            placeholder={t.onboarding_placeholder}
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            maxLength={200}
-          />
-        </div>
+        <p className="mt-1 text-[12px] text-content-tertiary">{t.auth_password_hint}</p>
       </div>
 
       {error && (
@@ -144,7 +161,7 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
         </p>
       )}
 
-      <button type="submit" disabled={busy} className="btn-primary w-full">
+      <button type="submit" disabled={busy || !fullName.trim() || !email.trim() || !password} className="btn-primary w-full">
         {busy ? t.loading : t.auth_submitSignUp}
       </button>
 
