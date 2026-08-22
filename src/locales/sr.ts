@@ -367,6 +367,7 @@ const sr: LocaleDict = {
   auth_error_email_exists: 'Nalog sa ovim emailom već postoji.',
   auth_error_network: 'Mrežna greška. Pokušajte ponovo.',
   auth_error_generic: 'Došlo je do greške. Pokušajte ponovo.',
+  auth_error_rate_limit: 'Previše pokušaja. Pričekajte minut i pokušajte ponovo.',
   auth_error_invalid_email: 'Unesite ispravan email.',
   auth_logout: 'Odjava',
 

@@ -445,6 +445,7 @@ const bs = {
   auth_error_email_exists: 'Račun sa ovim emailom već postoji.',
   auth_error_network: 'Mrežna greška. Pokušajte ponovo.',
   auth_error_generic: 'Došlo je do greške. Pokušajte ponovo.',
+  auth_error_rate_limit: 'Previše pokušaja. Pričekajte minutu i pokušajte ponovo.',
   auth_error_invalid_email: 'Unesite ispravan email.',
   auth_logout: 'Odjava',
 

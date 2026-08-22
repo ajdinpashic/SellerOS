@@ -367,6 +367,7 @@ const en: LocaleDict = {
   auth_error_email_exists: 'An account with this email already exists.',
   auth_error_network: 'Network error. Please try again.',
   auth_error_generic: 'Something went wrong. Please try again.',
+  auth_error_rate_limit: 'Too many attempts. Wait a minute and try again.',
   auth_error_invalid_email: 'Enter a valid email address.',
   auth_logout: 'Sign out',
 

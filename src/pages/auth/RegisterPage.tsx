@@ -31,7 +31,9 @@ export function RegisterPage({ navigate }: RegisterPageProps) {
     }
     setError('');
     setBusy(true);
+    console.log('[Register] calling signUp with:', { email: email.trim(), fullName: fullName.trim() });
     const err = await signUp(fullName.trim(), email.trim(), password);
+    console.log('[Register] signUp result:', err);
     if (err) {
       setError(authErrorMessage(err, t));
       setBusy(false);
